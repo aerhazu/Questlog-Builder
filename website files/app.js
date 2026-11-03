@@ -1696,6 +1696,16 @@ function fixKnownLegacyIds(q){
   if(q.triggered_sound==='minecraft:block.stonecutter.take_result')q.triggered_sound='minecraft:ui.stonecutter.take_result';
   (q.rewards||[]).forEach(r=>{if(r&&r.claim_sound==='minecraft:block.stonecutter.take_result')r.claim_sound='minecraft:ui.stonecutter.take_result';});
 }
+// ── Requirement sync ──────────────────────────────────────────────
+// Builder-only flag on a quest. While true, requirements are a live copy of the objectives.
+// It is stripped from every exported/raw JSON by buildQOut.
+const QL_REQ_SYNC_KEY='_sync_requirements_to_objectives';
+function qlpClone(v){return JSON.parse(JSON.stringify(v==null?[]:v));}
+function applyRequirementSync(q){
+  if(!q||typeof q!=='object'||!q[QL_REQ_SYNC_KEY])return false;
+  q.requirements=qlpClone(Array.isArray(q.objectives)?q.objectives:[]);
+  return true;
+}
 // ── Chapter IDs ───────────────────────────────────────────────────
 // A chapter ID is "<namespace>:<path>". The path always comes from the file name.
 // The namespace defaults to the project namespace (main.json always defaults to "questlog")
@@ -2282,7 +2292,7 @@ function trimQ(q){
   (q.requirements||[]).forEach(finO);(q.objectives||[]).forEach(finO);(q.failures||[]).forEach(finO);(q.rewards||[]).forEach(finR);
 }
 
-function buildQOut(d){const out=JSON.parse(JSON.stringify(d||{}));fixQA(out);nqbd(out);trimQ(out);const ordered={};const ap=new Set();normOrder(panelOrder).forEach(pk=>{(PANEL_FIELDS[pk]||[]).forEach(f=>{if(Object.prototype.hasOwnProperty.call(out,f)){ordered[f]=out[f];ap.add(f);}});});Object.keys(out).forEach(f=>{if(!ap.has(f))ordered[f]=out[f];});return ordered;}
+function buildQOut(d){const out=JSON.parse(JSON.stringify(d||{}));applyRequirementSync(out);delete out[QL_REQ_SYNC_KEY];fixQA(out);nqbd(out);trimQ(out);const ordered={};const ap=new Set();normOrder(panelOrder).forEach(pk=>{(PANEL_FIELDS[pk]||[]).forEach(f=>{if(Object.prototype.hasOwnProperty.call(out,f)){ordered[f]=out[f];ap.add(f);}});});Object.keys(out).forEach(f=>{if(!ap.has(f))ordered[f]=out[f];});return ordered;}
 function trimCh(c){if(!c)return;if(c.translatable!==true)delete c.translatable;if(c.order===0||c.order===undefined)delete c.order;if(c.default_chapter!==true)delete c.default_chapter;if(c.hidden!==true)delete c.hidden;if(c.icon===undefined||c.icon===null||c.icon==='')delete c.icon;}
 
 // ── Quest templates ───────────────────────────────────────────────
@@ -14205,17 +14215,118 @@ function advancedGuiEditorCard(fields){
     ${hiddenAdvancedFields(fields)}
   </div>`;
 }
-function progressSectionHtml({kind,title,desc,count,noun,buttonId,buttonText,listId}){
-  return`<section class="progress-section progress-section-${kind}">
+function progressSectionHtml({kind,title,desc,count,noun,buttonId,buttonText,listId,syncChecked=false}){
+  const synced=kind==='req'&&syncChecked;
+  const syncToggle=kind==='req'?`<label class="toggle-label progress-sync-toggle" data-tip="Keep requirements identical to the objectives. Edit the objectives and the requirements follow. Turn it off to edit them separately."><input type="checkbox" id="qf_sync_req" ${syncChecked?'checked':''} /> Sync to objectives</label>`:'';
+  return`<section class="progress-section progress-section-${kind}${synced?' is-synced':''}">
     <header class="progress-section-head">
       <span class="progress-section-icon" aria-hidden="true">${guiStudioLucideIcon(progressSectionIconName(kind),'progress-section-svg')}</span>
       <span class="progress-section-copy"><strong>${title}</strong><em>${desc}</em></span>
       <span class="progress-section-count">${count} ${noun}${count===1?'':'s'}</span>
-      <button type="button" class="btn progress-add-btn progress-add-${kind}" id="${buttonId}">+ ${buttonText}</button>
+      <button type="button" class="btn progress-add-btn progress-add-${kind}" id="${buttonId}" ${synced?'disabled':''}>+ ${buttonText}</button>
       <span class="progress-section-caret" aria-hidden="true">^</span>
     </header>
+    <div class="progress-section-tools" data-progress-tools="${kind}">
+      <button type="button" class="btn progress-tool-btn" data-progress-copy="${kind}">Copy</button>
+      <button type="button" class="btn progress-tool-btn" data-progress-paste="${kind}">Paste</button>
+      ${syncToggle}
+    </div>
     <div class="progress-section-list" id="${listId}"></div>
   </section>`;
+}
+
+// ── Copy / paste for requirements, objectives, failures and rewards ──
+// Requirements, objectives and failures share one format, so they paste into each other.
+// Rewards only paste into rewards. Pasting adds to the end of the list.
+const PROGRESS_CLIP_KEY='ql.progress.clipboard.v1';
+const PROGRESS_SECTIONS={
+  req:{field:'requirements',noun:'requirement',group:'objective'},
+  obj:{field:'objectives',noun:'objective',group:'objective'},
+  fail:{field:'failures',noun:'failure',group:'objective'},
+  rew:{field:'rewards',noun:'reward',group:'reward'}
+};
+let progressClipboard;
+function getProgressClipboard(){
+  if(progressClipboard===undefined){
+    progressClipboard=null;
+    try{
+      const d=JSON.parse(localStorage.getItem(PROGRESS_CLIP_KEY)||'null');
+      if(d&&(d.group==='objective'||d.group==='reward')&&Array.isArray(d.items)&&d.items.length)progressClipboard=d;
+    }catch(_err){}
+  }
+  return progressClipboard;
+}
+function setProgressClipboard(clip){
+  progressClipboard=clip;
+  try{localStorage.setItem(PROGRESS_CLIP_KEY,JSON.stringify(clip));}catch(_err){}
+}
+function refreshProgressTools(){
+  const clip=getProgressClipboard();
+  const q=mode==='quest'?getCD():null;
+  $$('[data-progress-copy]').forEach(btn=>{
+    const def=PROGRESS_SECTIONS[btn.dataset.progressCopy];if(!def)return;
+    const n=q&&Array.isArray(q[def.field])?q[def.field].length:0;
+    btn.disabled=!n;
+    btn.dataset.tip=n?`Copy all ${n} ${def.noun}${n===1?'':'s'} in this list.`:`No ${def.noun}s to copy yet.`;
+  });
+  $$('[data-progress-paste]').forEach(btn=>{
+    const kind=btn.dataset.progressPaste,def=PROGRESS_SECTIONS[kind];if(!def)return;
+    let ok=true,tip='';
+    if(!clip){ok=false;tip='Nothing copied yet. Use Copy on a section first.';}
+    else if(clip.group!==def.group){ok=false;tip=clip.group==='reward'?'Copied rewards can only be pasted into Rewards.':'Copied requirements, objectives and failures can only be pasted into those sections.';}
+    else if(kind==='req'&&q&&q[QL_REQ_SYNC_KEY]){ok=false;tip='Requirements mirror the objectives while sync is on. Turn sync off to paste here.';}
+    else tip=`Add ${clip.items.length} copied ${clip.items.length===1?'entry':'entries'} to the end of this list.`;
+    btn.disabled=!ok;
+    btn.dataset.tip=tip;
+    btn.textContent=ok?`Paste (${clip.items.length})`:'Paste';
+  });
+}
+function copyProgressSection(kind){
+  const def=PROGRESS_SECTIONS[kind];if(!def||mode!=='quest'||!currentFile)return;
+  syncQ();
+  const q=getCD();if(!q)return;
+  const items=Array.isArray(q[def.field])?q[def.field]:[];
+  if(!items.length){showMsg(`No ${def.noun}s to copy.`,false);return;}
+  const copied=qlpClone(items);
+  setProgressClipboard({group:def.group,kind,items:copied,from:currentFile,at:Date.now()});
+  try{navigator.clipboard?.writeText?.(JSON.stringify(copied,null,2))?.catch?.(()=>{});}catch(_err){}
+  refreshProgressTools();
+  showMsg(`Copied ${copied.length} ${def.noun}${copied.length===1?'':'s'}.`,true);
+}
+function pasteProgressSection(kind){
+  const def=PROGRESS_SECTIONS[kind];if(!def||mode!=='quest'||!currentFile)return;
+  const clip=getProgressClipboard();
+  if(!clip){showMsg('Nothing copied yet.',false);return;}
+  if(clip.group!==def.group){showMsg(clip.group==='reward'?'Copied rewards can only be pasted into Rewards.':'Copied requirements, objectives and failures can only be pasted into those sections.',false);return;}
+  syncQ();
+  const q=getCD();if(!q)return;
+  if(kind==='req'&&q[QL_REQ_SYNC_KEY]){showMsg('Requirements mirror the objectives while sync is on. Turn sync off to paste here.',false);return;}
+  pushHistorySnapshot();
+  if(!Array.isArray(q[def.field]))q[def.field]=[];
+  q[def.field].push(...qlpClone(clip.items));
+  touchFile('quest',currentFile);
+  setCD(q);
+  renderMain();
+  showMsg(`Pasted ${clip.items.length} ${def.noun}${clip.items.length===1?'':'s'}.`,true);
+}
+function toggleRequirementSync(on){
+  if(mode!=='quest'||!currentFile)return;
+  syncQ();
+  const q=getCD();if(!q)return;
+  pushHistorySnapshot();
+  if(on){q[QL_REQ_SYNC_KEY]=true;applyRequirementSync(q);}
+  else delete q[QL_REQ_SYNC_KEY];
+  touchFile('quest',currentFile);
+  setCD(q);
+  renderMain();
+  showMsg(on?'Requirements now mirror the objectives. Undo brings your old requirements back.':'Sync off. Requirements are independent again.',true);
+}
+function bindProgressTools(){
+  $$('[data-progress-copy]').forEach(btn=>{btn.onclick=e=>{e.preventDefault();e.stopPropagation();copyProgressSection(btn.dataset.progressCopy);};});
+  $$('[data-progress-paste]').forEach(btn=>{btn.onclick=e=>{e.preventDefault();e.stopPropagation();pasteProgressSection(btn.dataset.progressPaste);};});
+  const sync=$('#qf_sync_req');
+  if(sync)sync.onchange=()=>toggleRequirementSync(sync.checked);
+  refreshProgressTools();
 }
 
 // ── Quest form ────────────────────────────────────────────────────
@@ -14251,7 +14362,7 @@ function renderQForm(q){
   <summary>Requirements, Objectives &amp; Rewards</summary>
   <div class="sec-body">
     <div class="progress-board">
-      ${progressSectionHtml({kind:'req',title:'Requirements (unlock)',desc:'Conditions that must be met to unlock this quest.',count:(q.requirements||[]).length,noun:'requirement',buttonId:'addReq',buttonText:'Add requirement',listId:'reqList'})}
+      ${progressSectionHtml({kind:'req',title:'Requirements (unlock)',desc:'Conditions that must be met to unlock this quest.',count:(q.requirements||[]).length,noun:'requirement',buttonId:'addReq',buttonText:'Add requirement',listId:'reqList',syncChecked:!!q[QL_REQ_SYNC_KEY]})}
       ${progressSectionHtml({kind:'obj',title:'Objectives',desc:'Tasks the player needs to complete.',count:(q.objectives||[]).length,noun:'objective',buttonId:'addObj',buttonText:'Add objective',listId:'objList'})}
       ${progressSectionHtml({kind:'fail',title:'Failures (optional)',desc:'Conditions that fail this quest.',count:(q.failures||[]).length,noun:'failure',buttonId:'addFail',buttonText:'Add failure',listId:'failList'})}
       ${progressSectionHtml({kind:'rew',title:'Rewards',desc:'Rewards given when the quest is completed.',count:(q.rewards||[]).length,noun:'reward',buttonId:'addRew',buttonText:'Add reward',listId:'rewList'})}
@@ -14701,6 +14812,7 @@ function toggR(p){const k=document.querySelector(`[data-r="${p}-kind"]`);if(!k)r
 
 function bindQForm(){
   const q=getCD();
+  applyRequirementSync(q);
   setupDropdowns();bindColorPickers();toggR('icon');
   updateDisplayIconPreview();
   renderInlineQuestPreview();
@@ -14729,6 +14841,7 @@ function bindQForm(){
   $('#addObj').onclick=()=>{syncQ();if(!Array.isArray(q.objectives))q.objectives=[];q.objectives.push({type:'questlog:item_obtain',item:'minecraft:dirt',required_amount:1});setCD(q);renderMain();};
   $('#addFail').onclick=()=>{syncQ();if(!q.failures)q.failures=[];q.failures.push({type:'questlog:stat',stat:'minecraft:play_time',required_amount:6000,retroactive:false});setCD(q);renderMain();};
   $('#addRew').onclick=()=>{syncQ();if(!Array.isArray(q.rewards))q.rewards=[];q.rewards.push({type:'questlog:item',item:'minecraft:diamond',count:1});setCD(q);renderMain();};
+  bindProgressTools();
 }
 
 function bindChForm(){
@@ -14772,7 +14885,7 @@ function syncQ(){
   const dc=$('#qf_description_completed');q.description_completed=dc?pMJ(dc.value,true):undefined;if(q.description_completed===undefined)delete q.description_completed;
   const df=$('#qf_description_failed');q.description_failed=df?pMJ(df.value,true):undefined;if(q.description_failed===undefined)delete q.description_failed;
   const ik=document.querySelector('[data-r="icon-kind"]')?.value;if(ik==='stringitem'){const v=itemIdInputValue(document.querySelector('[data-r="icon-strv"]'));if(v)q.icon=v;else delete q.icon;}else if(ik==='item'){const v=itemIdInputValue(document.querySelector('[data-r="icon-itemv"]'));if(v)q.icon={item:v};else delete q.icon;}else{const v=document.querySelector('[data-r="icon-texv"]')?.value?.trim();if(v)q.icon={texture:v};else delete q.icon;}
-  q.requirements=readOL($('#reqList'));q.objectives=readOL($('#objList'));const f=readOL($('#failList'));if(f.length)q.failures=f;else delete q.failures;
+  q.requirements=readOL($('#reqList'));q.objectives=readOL($('#objList'));const f=readOL($('#failList'));if(f.length)q.failures=f;else delete q.failures;applyRequirementSync(q);
   q.rewards=[...$('#rewList').querySelectorAll('.rew-card')].map(card=>{const t=card.querySelector('.rew-type').value;const r={type:t};const n=card.querySelector('.rw-name')?.value?.trim();if(n)r.name=n;if(card.querySelector('.rw-trans')?.checked)r.translatable=true;const ic=card.querySelector('.rw-icon')?.value?.trim();if(ic){try{r.icon=JSON.parse(ic);}catch{r.icon=ic;}}const snd=card.querySelector('.rw-sound')?.value?.trim();if(snd)r.claim_sound=snd;if(card.querySelector('.rw-autoclaim')?.checked)r.auto_claim=true;if(t==='questlog:item'){r.item=itemIdInputValue(card.querySelector('.rw-item'),'minecraft:stone');r.count=parseInt(card.querySelector('.rw-count')?.value,10)||1;}else if(t==='questlog:command'){r.command=card.querySelector('.rw-cmd')?.value?.trim()||'/say hi';r.permission_level=parseInt(card.querySelector('.rw-plvl')?.value,10)||2;}else if(t==='questlog:experience'){r.experience=parseInt(card.querySelector('.rw-xp')?.value,10)||0;if(card.querySelector('.rw-levels')?.checked)r.level=true;}else if(t==='questlog:loot_table'){r.loot_table=card.querySelector('.rw-loot')?.value?.trim()||'minecraft:chests/spawn_bonus_chest';}return r;});
   const cs=$('#qf_completed_sound')?.value?.trim();if(cs)q.completed_sound=cs;else delete q.completed_sound;const ts=$('#qf_triggered_sound')?.value?.trim();if(ts)q.triggered_sound=ts;else delete q.triggered_sound;
   q.toast_on_unlock=$('#qf_toast_on_unlock')?.checked;q.toast_on_complete=$('#qf_toast_on_complete')?.checked;q.show_popup_on_unlock=$('#qf_show_popup_on_unlock')?.checked;
@@ -18768,7 +18881,7 @@ onClick('#btnManualSaveHead',manualSaveNow);
 $('#defaultNs')?.addEventListener('input',()=>{renderFileList();renderValidation();refreshJson();scheduleAutosave();});
 $('#defaultNs')?.addEventListener('change',()=>recordActivity('Changed namespace','project','',$('#defaultNs')?.value.trim()||'questlog'));
 const lj=$('#liveJson');
-const applyLJ=debounce(()=>{if(!currentFile||!getCD())return;try{const p=JSON.parse(lj.value);if(mode==='quest'){fixQA(p);nqbd(p);trimQ(p);quests[currentFile]=p;touchFile('quest',currentFile);}else{trimCh(p);const keepNs=chapterOwnNamespace(currentFile);delete p[CHAPTER_NS_KEY];if(keepNs)p[CHAPTER_NS_KEY]=keepNs;chapters[currentFile]=p;touchFile('chapter',currentFile);}lj.value=mode==='quest'?stringifyJson(buildQOut(p)):stringifyJson(stripChapterBuilderKeys({...p}));showMsg('JSON applied.',true);renderMain();}catch(err){showMsg(err.message||String(err),false);}},420);
+const applyLJ=debounce(()=>{if(!currentFile||!getCD())return;try{const p=JSON.parse(lj.value);if(mode==='quest'){fixQA(p);nqbd(p);if(quests[currentFile]&&quests[currentFile][QL_REQ_SYNC_KEY]){p[QL_REQ_SYNC_KEY]=true;applyRequirementSync(p);}trimQ(p);quests[currentFile]=p;touchFile('quest',currentFile);}else{trimCh(p);const keepNs=chapterOwnNamespace(currentFile);delete p[CHAPTER_NS_KEY];if(keepNs)p[CHAPTER_NS_KEY]=keepNs;chapters[currentFile]=p;touchFile('chapter',currentFile);}lj.value=mode==='quest'?stringifyJson(buildQOut(p)):stringifyJson(stripChapterBuilderKeys({...p}));showMsg('JSON applied.',true);renderMain();}catch(err){showMsg(err.message||String(err),false);}},420);
 lj.addEventListener('focusin',()=>{jsonFocused=true;});
 lj.addEventListener('focusout',()=>{jsonFocused=false;refreshJson();});
 lj.addEventListener('input',()=>{if(!currentFile)return;applyLJ();});

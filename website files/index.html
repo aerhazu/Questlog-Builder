@@ -2820,6 +2820,13 @@ input,select,textarea{
 .progress-add-obj{color:#69b4ff!important;border-color:rgba(78,158,255,.45)!important;}
 .progress-add-fail{color:#ffc44c!important;border-color:rgba(255,184,64,.45)!important;}
 .progress-add-rew{color:#69d96d!important;border-color:rgba(93,211,97,.45)!important;}
+.progress-section-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;padding-left:68px;}
+.progress-tool-btn{min-height:30px!important;padding:4px 12px!important;font-size:12px!important;border-radius:5px!important;background:color-mix(in srgb,var(--json-bg) 64%,transparent)!important;}
+.progress-tool-btn:disabled{opacity:.42;cursor:not-allowed;}
+.progress-sync-toggle{margin-left:auto;font-size:12px;white-space:nowrap;}
+.progress-section.is-synced .progress-section-list{opacity:.6;pointer-events:none;}
+.progress-section.is-synced .progress-add-btn{opacity:.45;cursor:not-allowed;}
+@media (max-width:850px){.progress-section-tools{padding-left:0;}.progress-sync-toggle{margin-left:0;}}
 .progress-section-caret{color:var(--mu);font:900 18px/1 var(--font);text-align:center;}
 .progress-section-list{
   display:grid;
@@ -12689,7 +12696,7 @@ body[data-layout="classic"] .inline-quest-preview,
 <script src="mod-id-packs/abyss_ii.js?v=3.0-mod-support-final-manual-source-1"></script>
 <script src="minecraft-texture-index.js?v=3.0-minecraft-textures-1"></script>
 <script src="minecraft-entity-texture-index.js?v=3.0-entity-textures-1"></script>
-<script src="app.js?v=3.02-chapter-ids-perf-1"></script>
+<script src="app.js?v=3.03-copy-paste-sync-1"></script>
 <script>
   window.QUESTLOG_HTML_VERSION='3.01';
   setTimeout(function(){
