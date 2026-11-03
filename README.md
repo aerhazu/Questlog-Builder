@@ -1,12 +1,12 @@
 ﻿# Questlog Builder
 
-https://questlog-builder.christytrusty.workers.dev
+https://questlog-builder.aerhazu.workers.dev
 
-Static browser editor for creating and exporting Minecraft Questlog quest/chapter JSON and the companion GUI resource-pack assets used by Questlog Builder v3.0.
+This is a fork of [ChristyTrusty's](https://github.com/christytrusty) [Questlog Builder](https://github.com/christytrusty/Questlog-Builder), a static browser editor for creating and exporting Minecraft Questlog quest/chapter JSON and the companion GUI resource-pack assets used by Questlog Builder v3.0.
 
 ## Status
 
-v3.0 is the current release implementation.
+v3.03-copy-paste-sync-1
 
 ## What It Does
 
