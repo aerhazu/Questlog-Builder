@@ -1,4 +1,9 @@
-﻿# Questlog Builder
+﻿> [!IMPORTANT]
+> **AI Generated Content Disclosure**
+>
+> This project was developed predominantly, if not entirely, through the use of artificial intelligence, specifically Claude AI.
+
+# Questlog Builder
 
 https://questlog-builder.aerhazu.workers.dev
 
