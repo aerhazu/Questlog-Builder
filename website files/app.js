@@ -567,7 +567,7 @@ const RIGHT_PANEL_MODE_KEY='ql.rightPanelMode';
 const CHAPTER_COLLAPSE_KEY='ql.sidebarCollapsedChapters';
 const PROGRESS_OPEN_CARDS_KEY='ql.progressOpenCards.v1';
 const PANEL_DEF=["display","progress","layout","labels","badge"];
-const PANEL_FIELDS={display:["title","sort_order","chapter","translatable","include_in_main","hidden","description","description_completed","description_failed","icon","completed_sound","triggered_sound","toast_on_unlock","toast_on_complete","show_popup_on_unlock"],progress:["requirements","objectives","failures","rewards"],layout:["background_texture","right_panel_texture","peripheral_texture","overlay","overlay_width","overlay_height","overlay_x_offset","overlay_y_offset","left_panel_width","right_panel_width","panel_height","left_panel_x_offset","left_panel_y_offset","right_panel_x_offset","right_panel_y_offset"],labels:["back_button_text","collect_button_text","uncollected_text","collected_text","text_color","completed_text_color","hovered_text_color","title_color","progress_text_color"],badge:["badge"]};
+const PANEL_FIELDS={display:["title","sort_order","chapter","translatable","include_in_main","hidden","hide_when_completed","description","description_completed","description_failed","icon","completed_sound","triggered_sound","toast_on_unlock","toast_on_complete","show_popup_on_unlock"],progress:["requirements","objectives","failures","rewards"],layout:["background_texture","right_panel_texture","peripheral_texture","overlay","overlay_width","overlay_height","overlay_x_offset","overlay_y_offset","left_panel_width","right_panel_width","panel_height","left_panel_x_offset","left_panel_y_offset","right_panel_x_offset","right_panel_y_offset"],labels:["back_button_text","collect_button_text","uncollected_text","collected_text","text_color","completed_text_color","hovered_text_color","title_color","progress_text_color"],badge:["badge"]};
 const ADV_KEYS=["layout","labels","badge"];
 const MAIN_KEYS=["display","progress"];
 const MC_COLORS=[
@@ -1949,14 +1949,14 @@ function renumberOrder(kind,names){
   const data=kind==='quest'?quests:chapters,field=ORDER_FIELD[kind];
   names.forEach((n,i)=>{
     const d=data[n];if(!d)return;
-    if(Number(d[field])!==i+1||d[field]===undefined){d[field]=i+1;touchFile(kind,n);}
+    if(Number(d[field])!==i||d[field]===undefined){d[field]=i;touchFile(kind,n);}
   });
 }
 function appendOrderValue(kind,name){
   const data=kind==='quest'?quests:chapters,field=ORDER_FIELD[kind];
   const d=data[name];if(!d)return;
   const group=kind==='chapter'?orderedGroup('chapter',null,name):orderedGroup('quest',questBoundCh(name)||null,name);
-  d[field]=group.reduce((m,f)=>Math.max(m,Number(data[f]?.[field])||0),0)+1;
+  d[field]=group.reduce((m,f)=>Math.max(m,Number(data[f]?.[field])||0),-1)+1;
 }
 function moveInOrder(kind,name,targetName,after){
   if(listSort!=='order'){showMsg('Set the list sort to Quest order to reorder by dragging.',false);return false;}
@@ -2405,7 +2405,7 @@ function finO(o){if(!o||typeof o!=='object')return;if(o.translatable!==true)dele
 function trimQ(q){
   if(q.description===''||q.description===undefined)delete q.description;if(q.description_completed===undefined||q.description_completed==='')delete q.description_completed;if(q.description_failed===undefined||q.description_failed==='')delete q.description_failed;
   if(q.sort_order===0||q.sort_order===undefined)delete q.sort_order;const cv=q.chapter||'questlog:main';if(cv==='questlog:main')delete q.chapter;
-  if(q.translatable!==true)delete q.translatable;const id=defIncMain(cv);if(q.include_in_main===id||q.include_in_main===undefined)delete q.include_in_main;if(q.hidden!==true)delete q.hidden;if(q.icon===undefined||q.icon===null||q.icon==='')delete q.icon;
+  if(q.translatable!==true)delete q.translatable;const id=defIncMain(cv);if(q.include_in_main===id||q.include_in_main===undefined)delete q.include_in_main;if(q.hidden!==true)delete q.hidden;if(q.hide_when_completed!==true)delete q.hide_when_completed;if(q.icon===undefined||q.icon===null||q.icon==='')delete q.icon;
   if(!q.completed_sound)delete q.completed_sound;if(!q.triggered_sound)delete q.triggered_sound;if(q.toast_on_unlock!==false)delete q.toast_on_unlock;if(q.toast_on_complete!==false)delete q.toast_on_complete;if(q.show_popup_on_unlock!==true)delete q.show_popup_on_unlock;
   if(!q.background_texture)delete q.background_texture;if(!q.right_panel_texture)delete q.right_panel_texture;if(!q.peripheral_texture)delete q.peripheral_texture;if(!q.overlay)delete q.overlay;if(q.overlay_width==null)delete q.overlay_width;if(q.overlay_height==null)delete q.overlay_height;if(!q.overlay_x_offset)delete q.overlay_x_offset;if(!q.overlay_y_offset)delete q.overlay_y_offset;
   if(q.left_panel_width===275||q.left_panel_width==null)delete q.left_panel_width;if(q.right_panel_width===170||q.right_panel_width==null)delete q.right_panel_width;if(q.panel_height===166||q.panel_height==null)delete q.panel_height;if(!q.left_panel_x_offset)delete q.left_panel_x_offset;if(!q.left_panel_y_offset)delete q.left_panel_y_offset;if(!q.right_panel_x_offset)delete q.right_panel_x_offset;if(!q.right_panel_y_offset)delete q.right_panel_y_offset;
@@ -14463,7 +14463,7 @@ function renderQForm(q){
   <div class="display-icon-preview default-texture" data-tip="Quest icon preview. Uses a default book texture until an icon is configured." aria-label="Quest icon preview"></div>
   <div>
     <div class="display-identity-fields"><div class="field" data-tip="The player-facing quest title shown in Questlog."><label>Title</label><input type="text" id="qf_title" value="${esc(q.title||'')}" /></div><div class="field" data-tip="Questlog uses this number to order quests inside a chapter."><label>Order</label><input type="number" id="qf_sort_order" value="${d('sort_order',0)}" /></div><div class="field" data-tip="The chapter this quest belongs to, usually namespace:chapter_file_name."><label>Chapter ID</label><input type="text" id="qf_chapter" value="${esc(ch)}" placeholder="main" list="qfChapterIds" autocomplete="off" spellcheck="false" /><datalist id="qfChapterIds">${Object.keys(chapters).map(f=>`<option value="${esc(chapterIdFor(f))}"></option>`).join('')}</datalist></div></div>
-    <div class="display-toggles" aria-label="Quest display options"><div class="display-toggle-group"><span class="display-toggle-group-label">File</span><label class="toggle-label" data-tip="Mark the quest text as translatable for language files."><input type="checkbox" id="qf_translatable" ${d('translatable',false)?'checked':''} /> Translatable</label><label class="toggle-label" data-tip="Show this quest in the main Questlog view when appropriate."><input type="checkbox" id="qf_include_in_main" ${incMain?'checked':''} /> Include in main</label><label class="toggle-label" data-tip="Hide even after requirements are met. Usually requirements are enough for normal gating."><input type="checkbox" id="qf_hidden" ${d('hidden',false)?'checked':''} /> Hidden</label></div><div class="display-toggle-group"><span class="display-toggle-group-label">Notify</span><label class="toggle-label" data-tip="Show a toast when this quest becomes available."><input type="checkbox" id="qf_toast_on_unlock" ${d('toast_on_unlock',true)?'checked':''} /> Unlock toast</label><label class="toggle-label" data-tip="Show a toast when this quest is completed."><input type="checkbox" id="qf_toast_on_complete" ${d('toast_on_complete',true)?'checked':''} /> Complete toast</label><label class="toggle-label" data-tip="Show a larger popup when the quest unlocks."><input type="checkbox" id="qf_show_popup_on_unlock" ${d('show_popup_on_unlock',false)?'checked':''} /> Popup</label></div></div>
+    <div class="display-toggles" aria-label="Quest display options"><div class="display-toggle-group"><span class="display-toggle-group-label">File</span><label class="toggle-label" data-tip="Mark the quest text as translatable for language files."><input type="checkbox" id="qf_translatable" ${d('translatable',false)?'checked':''} /> Translatable</label><label class="toggle-label" data-tip="Show this quest in the main Questlog view when appropriate."><input type="checkbox" id="qf_include_in_main" ${incMain?'checked':''} /> Include in main</label><label class="toggle-label" data-tip="Hide even after requirements are met. Usually requirements are enough for normal gating."><input type="checkbox" id="qf_hidden" ${d('hidden',false)?'checked':''} /> Hidden</label><label class="toggle-label" data-tip="Hide this quest from the quest list once the player has completed it and claimed rewards."><input type="checkbox" id="qf_hide_when_completed" ${d('hide_when_completed',false)?'checked':''} /> Hide when completed</label></div><div class="display-toggle-group"><span class="display-toggle-group-label">Notify</span><label class="toggle-label" data-tip="Show a toast when this quest becomes available."><input type="checkbox" id="qf_toast_on_unlock" ${d('toast_on_unlock',true)?'checked':''} /> Unlock toast</label><label class="toggle-label" data-tip="Show a toast when this quest is completed."><input type="checkbox" id="qf_toast_on_complete" ${d('toast_on_complete',true)?'checked':''} /> Complete toast</label><label class="toggle-label" data-tip="Show a larger popup when the quest unlocks."><input type="checkbox" id="qf_show_popup_on_unlock" ${d('show_popup_on_unlock',false)?'checked':''} /> Popup</label></div></div>
     <div class="hint display-hidden-hint">Hidden suppresses even after requirements are met. Requirements auto-gate - no need for hidden.</div>
   </div>
 </div>
@@ -15057,7 +15057,7 @@ function syncQ(opts){
   const readList=id=>!onlyLists||onlyLists.has(id);
   touchFile('quest',currentFile);
   const q=getCD();
-  q.title=$('#qf_title')?.value||'';q.sort_order=parseInt($('#qf_sort_order')?.value,10)||0;q.chapter=$('#qf_chapter')?.value?.trim()||'main';q.translatable=$('#qf_translatable')?.checked;q.include_in_main=$('#qf_include_in_main')?.checked;q.hidden=$('#qf_hidden')?.checked;
+  q.title=$('#qf_title')?.value||'';q.sort_order=parseInt($('#qf_sort_order')?.value,10)||0;q.chapter=$('#qf_chapter')?.value?.trim()||'main';q.translatable=$('#qf_translatable')?.checked;q.include_in_main=$('#qf_include_in_main')?.checked;q.hidden=$('#qf_hidden')?.checked;q.hide_when_completed=$('#qf_hide_when_completed')?.checked;
   const dv=$('#qf_description')?.value||'';q.description=pMJ(dv);if(q.description===''||q.description===undefined)delete q.description;
   const dc=$('#qf_description_completed');q.description_completed=dc?pMJ(dc.value,true):undefined;if(q.description_completed===undefined)delete q.description_completed;
   const df=$('#qf_description_failed');q.description_failed=df?pMJ(df.value,true):undefined;if(q.description_failed===undefined)delete q.description_failed;
@@ -15461,7 +15461,7 @@ function validateAll(currentOnly){
 
 const VALIDATION_SECTION_LABELS={requirements:'Requirements',objectives:'Objectives',failures:'Failures',rewards:'Rewards'};
 const VALIDATION_FIELD_LABELS={
-  file:'Filename',root:'JSON root',title:'Quest title',name:'Display name',order:'Order',sort_order:'Order',chapter:'Chapter ID',hidden:'Hidden toggle',
+  file:'Filename',root:'JSON root',title:'Quest title',name:'Display name',order:'Order',sort_order:'Order',chapter:'Chapter ID',hidden:'Hidden toggle',hide_when_completed:'Hide when completed toggle',
   type:'Type',required_amount:'Required amount',item:'Item ID',block:'Block ID',entity:'Entity ID',biome:'Biome ID',dimension:'Dimension ID',
   structure:'Structure ID',effect:'Effect ID',advancement:'Advancement ID',quest:'Quest reference',stat:'Statistic ID',slot:'Equipment slot',
   range:'Range',bounds:'Position bounds',objectives:'Nested objectives',objective:'Nested objective',
@@ -15504,7 +15504,7 @@ function targetForIssue(issue){
     return $(map[p])?.closest('.field')||$('#panelForm');
   }
   const direct={
-    file:'#filename',title:'#qf_title',sort_order:'#qf_sort_order',chapter:'#qf_chapter',hidden:'#qf_hidden',
+    file:'#filename',title:'#qf_title',sort_order:'#qf_sort_order',chapter:'#qf_chapter',hidden:'#qf_hidden',hide_when_completed:'#qf_hide_when_completed',
     completed_sound:'#qf_completed_sound',triggered_sound:'#qf_triggered_sound',
     text_color:'#qf_text_color',completed_text_color:'#qf_completed_text_color',
     hovered_text_color:'#qf_hovered_text_color',title_color:'#qf_title_color',
