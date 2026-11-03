@@ -2827,6 +2827,12 @@ input,select,textarea{
 .progress-section.is-synced .progress-section-list{opacity:.6;pointer-events:none;}
 .progress-section.is-synced .progress-add-btn{opacity:.45;cursor:not-allowed;}
 @media (max-width:850px){.progress-section-tools{padding-left:0;}.progress-sync-toggle{margin-left:0;}}
+.fi.drop-before{box-shadow:inset 0 2px 0 var(--ac)!important;}
+.fi.drop-after{box-shadow:inset 0 -2px 0 var(--ac)!important;}
+.fi-chapter-wrap.drop-before{box-shadow:inset 0 2px 0 var(--ac);}
+.fi-chapter-wrap.drop-after{box-shadow:inset 0 -2px 0 var(--ac);}
+.fi-chapter.is-dragging{opacity:.55;}
+body.is-chapter-dragging{user-select:none;cursor:grabbing;}
 .progress-section-caret{color:var(--mu);font:900 18px/1 var(--font);text-align:center;}
 .progress-section-list{
   display:grid;
@@ -12696,7 +12702,7 @@ body[data-layout="classic"] .inline-quest-preview,
 <script src="mod-id-packs/abyss_ii.js?v=3.0-mod-support-final-manual-source-1"></script>
 <script src="minecraft-texture-index.js?v=3.0-minecraft-textures-1"></script>
 <script src="minecraft-entity-texture-index.js?v=3.0-entity-textures-1"></script>
-<script src="app.js?v=3.03-copy-paste-sync-1"></script>
+<script src="app.js?v=3.04-order-drag-perf-1"></script>
 <script>
   window.QUESTLOG_HTML_VERSION='3.01';
   setTimeout(function(){

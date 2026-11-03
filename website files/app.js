@@ -1394,7 +1394,17 @@ let modSupportSort=['available','name','category','data'].includes(localStorage.
 let personalizationDraft=null;
 let personalizationOriginalTheme=null;
 let personalUndoStack=[],personalRedoStack=[],personalChangeArmed=false;
-let listSort=['alpha','order','recent'].includes(localStorage.getItem(LIST_SORT_KEY))?localStorage.getItem(LIST_SORT_KEY):'alpha';
+const LIST_SORT_ORDER_DEFAULT_KEY='ql.listSort.orderDefault.v1';
+let listSortJustMigrated=false;
+let listSort=(()=>{
+  const saved=localStorage.getItem(LIST_SORT_KEY);
+  let v=['alpha','order','recent'].includes(saved)?saved:'order';
+  if(localStorage.getItem(LIST_SORT_ORDER_DEFAULT_KEY)!=='1'){
+    try{localStorage.setItem(LIST_SORT_ORDER_DEFAULT_KEY,'1');localStorage.setItem(LIST_SORT_KEY,'order');}catch(_err){}
+    if(v!=='order'){v='order';listSortJustMigrated=true;}
+  }
+  return v;
+})();
 let focusedLeftOpen=localStorage.getItem(FOCUSED_LEFT_OPEN_KEY)==='true';
 let focusedRightOpen=localStorage.getItem(FOCUSED_RIGHT_OPEN_KEY)==='true';
 let focusedLeftWidth=parseInt(localStorage.getItem(FOCUSED_LEFT_WIDTH_KEY),10);
@@ -1589,7 +1599,7 @@ function loadAutosave(){
     fileMeta=data.fileMeta&&typeof data.fileMeta==='object'?data.fileMeta:{};
     activityLog=Array.isArray(data.activityLog)?data.activityLog.slice(0,ACTIVITY_LIMIT):[];
     customTemplates=Array.isArray(data.customTemplates)?data.customTemplates:[];
-    listSort=['alpha','order','recent'].includes(data.listSort)?data.listSort:listSort;
+    if(!listSortJustMigrated)listSort=['alpha','order','recent'].includes(data.listSort)?data.listSort:listSort;
     localStorage.setItem(LIST_SORT_KEY,listSort);
     undoStack=Array.isArray(data.undoStack)?data.undoStack.slice(-HISTORY_LIMIT):[];
     redoStack=Array.isArray(data.redoStack)?data.redoStack.slice(-HISTORY_LIMIT):[];
@@ -1707,84 +1717,64 @@ function applyRequirementSync(q){
   return true;
 }
 // ── Chapter IDs ───────────────────────────────────────────────────
-// A chapter ID is "<namespace>:<path>". The path always comes from the file name.
-// The namespace defaults to the project namespace (main.json always defaults to "questlog")
-// but can be set per chapter. The override lives on the chapter under a builder-only key
-// that is stripped from every export and from the raw JSON view.
-const CHAPTER_NS_KEY='_id_namespace';
-const CHAPTER_NS_RE=/^[a-z0-9_.-]+$/;
+// A chapter's ID is just its file name without .json (main.json is "main").
+// Quests point at a chapter with that plain name. Older namespaced refs such as
+// "questlog:main" or "lavendre:combat" are still recognised so existing projects keep working.
+const CHAPTER_NS_KEY='_id_namespace'; // legacy builder-only key from an earlier build, always removed
 function chapterBase(file){return String(file||'').replace(/\.json$/i,'');}
-function chapterOwnNamespace(file){
-  const own=chapters&&chapters[file]&&chapters[file][CHAPTER_NS_KEY];
-  return typeof own==='string'?own.trim():'';
-}
-function chapterDefaultNamespace(file){return chapterBase(file)==='main'?'questlog':(getNs()||'questlog');}
-function chapterNamespace(file){return chapterOwnNamespace(file)||chapterDefaultNamespace(file);}
-function chapterIdFor(file){return `${chapterNamespace(file)}:${chapterBase(file)}`;}
+function chapterIdFor(file){return chapterBase(file);}
 function stripChapterBuilderKeys(c){if(c&&typeof c==='object')delete c[CHAPTER_NS_KEY];return c;}
-// 2 = accepted spelling of this chapter's ID, 1 = same path but a different namespace, 0 = no match
+// 2 = this ref points at the chapter (plain name, file name, or any "namespace:name" form), 0 = no match
 function chapterRefLevel(file,ref){
   const r=String(ref==null?'':ref).trim();
   if(!r)return 0;
   const base=chapterBase(file);
-  if(r===chapterIdFor(file)||r===base||r===file)return 2;
-  if(!chapterOwnNamespace(file)){
-    const ns=getNs()||'questlog';
-    if(r===`${ns}:${base}`||r===`questlog:${base}`)return 2;
-  }
+  if(r===base||r===file)return 2;
   const i=r.indexOf(':');
-  if(i>=0&&r.slice(i+1)===base)return 1;
+  if(i>=0&&r.slice(i+1)===base)return 2;
   return 0;
 }
 function chapterFileForRef(ref){
-  let best=null,bestLevel=0;
-  for(const file of Object.keys(chapters||{})){
-    const l=chapterRefLevel(file,ref);
-    if(l>bestLevel){best=file;bestLevel=l;if(l===2)break;}
-  }
-  return best;
+  for(const file of Object.keys(chapters||{})){if(chapterRefLevel(file,ref))return file;}
+  return null;
 }
-// Accepts "name" or "namespace:name". Returns {ns,path}; ns is '' when none was typed.
+// Accepts "name" or "namespace:name" and keeps only the name.
 function parseChapterIdInput(raw){
   const s=String(raw||'').trim().replace(/\.json$/i,'');
   const i=s.indexOf(':');
-  if(i<0)return {ns:'',path:s};
-  return {ns:s.slice(0,i).trim(),path:s.slice(i+1).trim()};
+  return {ns:'',path:(i<0?s:s.slice(i+1)).trim()};
 }
-function renameChapterWithId(oldFile,newFile,explicitNs){
+function renameChapterWithId(oldFile,newFile){
   const c=chapters[oldFile];if(!c)return 0;
   const matched=[];
   Object.entries(quests||{}).forEach(([fn,q])=>{
-    if(q&&q.chapter&&chapterRefLevel(oldFile,q.chapter)>=1)matched.push([fn,!String(q.chapter).includes(':'),q]);
+    if(q&&q.chapter&&chapterRefLevel(oldFile,q.chapter))matched.push([fn,q]);
   });
   if(newFile!==oldFile){
     chapters[newFile]=c;
     delete chapters[oldFile];
     moveFileMeta('chapter',oldFile,newFile);
   }
-  const target=chapters[newFile];
-  if(explicitNs&&explicitNs!==chapterDefaultNamespace(newFile))target[CHAPTER_NS_KEY]=explicitNs;
-  else delete target[CHAPTER_NS_KEY];
-  const newId=chapterIdFor(newFile),newBase=chapterBase(newFile);
-  matched.forEach(([fn,bare,q])=>{q.chapter=bare?newBase:newId;touchFile('quest',fn);});
+  delete chapters[newFile][CHAPTER_NS_KEY];
+  const newBase=chapterBase(newFile);
+  matched.forEach(([fn,q])=>{
+    const ref=String(q.chapter);
+    q.chapter=ref.includes(':')?`${ref.split(':')[0]}:${newBase}`:newBase;
+    touchFile('quest',fn);
+  });
   touchFile('chapter',newFile);
   if(currentFile===oldFile)currentFile=newFile;
   return matched.length;
 }
-// Applies a chapter ID edit from any UI (sidebar, rename dialog, chapter form).
+// Applies a chapter rename/ID edit from any UI (sidebar, rename dialog, chapter form).
 function applyChapterIdEdit(oldFile,raw){
-  const {ns,path}=parseChapterIdInput(raw);
+  const {path}=parseChapterIdInput(raw);
   if(!path)return {ok:false,error:'Name your chapter something.'};
-  if(ns&&!CHAPTER_NS_RE.test(ns))return {ok:false,error:'Namespace can only use lowercase letters, numbers, _, -, and dots.'};
-  if(path.includes(':'))return {ok:false,error:'Use one colon only: namespace:chapter_name.'};
   const newFile=path+'.json';
-  if(newFile!==oldFile&&chapters[newFile])return {ok:false,error:'Name taken.'};
-  const explicitNs=ns||chapterOwnNamespace(oldFile);
-  const sameFile=newFile===oldFile;
-  const sameNs=(ns||chapterNamespace(oldFile))===chapterNamespace(oldFile);
-  if(sameFile&&sameNs)return {ok:true,file:oldFile,unchanged:true};
+  if(newFile===oldFile)return {ok:true,file:oldFile,unchanged:true};
+  if(chapters[newFile])return {ok:false,error:'Name taken.'};
   pushHistorySnapshot();
-  const moved=renameChapterWithId(oldFile,newFile,explicitNs);
+  const moved=renameChapterWithId(oldFile,newFile);
   return {ok:true,file:newFile,unchanged:false,movedQuests:moved,id:chapterIdFor(newFile)};
 }
 function defIncMain(ch){return ch==='questlog:main'||ch==='main';}
@@ -1881,14 +1871,15 @@ function questBoundCh(qn){
   const q=quests[qn];if(!q)return null;
   const ch=q.chapter;
   if(ch)return chapterFileForRef(ch);
-  // No chapter field means Questlog's default chapter, questlog:main
-  return chapters['main.json']&&chapterIdFor('main.json')==='questlog:main'?'main.json':null;
+  // No chapter field means Questlog's default chapter, main
+  return chapters['main.json']?'main.json':null;
 }
 function bindQ(qn,cn){
   const q=quests[qn];if(!q)return;
   pushHistorySnapshot();
   touchFile('quest',qn);
   q.chapter=chapterIdFor(cn);
+  appendOrderValue('quest',qn);
   renderFileList();if(currentFile===qn&&mode==='quest'){renderMain();}
 }
 function unbindQ(qn){
@@ -1896,6 +1887,7 @@ function unbindQ(qn){
   pushHistorySnapshot();
   touchFile('quest',qn);
   delete q.chapter;
+  appendOrderValue('quest',qn);
   renderFileList();if(currentFile===qn&&mode==='quest'){renderMain();}
 }
 function questlogChapterRefCandidates(file){
@@ -1936,10 +1928,119 @@ function renameProjectFile(kind,oldName,newName){
       delete guiStudioHistoryScopes.questMenu[oldName];
     }
   }else{
-    renameChapterWithId(oldName,newName,chapterOwnNamespace(oldName));
+    renameChapterWithId(oldName,newName);
   }
   if(currentFile===oldName)currentFile=newName;
 }
+
+// ── Order values and drag reordering ──────────────────────────────
+// Quests are ordered inside their chapter by sort_order, chapters by order.
+// Creating, binding or dragging an item writes the order values, so the numbers always match the list.
+const ORDER_FIELD={quest:'sort_order',chapter:'order'};
+let lastSidebarDragEnd=0;
+function orderedGroup(kind,groupChapter,exclude){
+  const data=kind==='quest'?quests:chapters,field=ORDER_FIELD[kind];
+  const names=kind==='chapter'
+    ?Object.keys(chapters).filter(f=>f!==exclude)
+    :Object.keys(quests).filter(f=>f!==exclude&&(questBoundCh(f)||null)===(groupChapter||null));
+  return names.sort((a,b)=>(Number(data[a]?.[field])||0)-(Number(data[b]?.[field])||0)||String(a).localeCompare(String(b)));
+}
+function renumberOrder(kind,names){
+  const data=kind==='quest'?quests:chapters,field=ORDER_FIELD[kind];
+  names.forEach((n,i)=>{
+    const d=data[n];if(!d)return;
+    if(Number(d[field])!==i+1||d[field]===undefined){d[field]=i+1;touchFile(kind,n);}
+  });
+}
+function appendOrderValue(kind,name){
+  const data=kind==='quest'?quests:chapters,field=ORDER_FIELD[kind];
+  const d=data[name];if(!d)return;
+  const group=kind==='chapter'?orderedGroup('chapter',null,name):orderedGroup('quest',questBoundCh(name)||null,name);
+  d[field]=group.reduce((m,f)=>Math.max(m,Number(data[f]?.[field])||0),0)+1;
+}
+function moveInOrder(kind,name,targetName,after){
+  if(listSort!=='order'){showMsg('Set the list sort to Quest order to reorder by dragging.',false);return false;}
+  const data=kind==='quest'?quests:chapters;
+  if(!data[name]||!data[targetName]||name===targetName)return false;
+  if(currentFile&&getCD())syncVisibleStateForHistory();
+  pushHistorySnapshot();
+  let group;
+  if(kind==='quest'){
+    const targetCh=questBoundCh(targetName)||null;
+    if((questBoundCh(name)||null)!==targetCh){
+      if(targetCh)quests[name].chapter=chapterIdFor(targetCh);else delete quests[name].chapter;
+    }
+    group=orderedGroup('quest',targetCh,name);
+  }else group=orderedGroup('chapter',null,name);
+  let idx=group.indexOf(targetName);
+  idx=idx<0?group.length:idx+(after?1:0);
+  group.splice(idx,0,name);
+  renumberOrder(kind,group);
+  touchFile(kind,name);
+  renderFileList();
+  if(currentFile&&getCD())renderMain();
+  recordActivity('Reordered',kind,name);
+  return true;
+}
+let sidebarScrollEl=null;
+function autoScrollFileList(y){
+  if(!sidebarScrollEl||!sidebarScrollEl.isConnected){
+    let el=$('#fileList');
+    while(el&&el!==document.body&&!(el.scrollHeight>el.clientHeight+2&&/(auto|scroll)/.test(getComputedStyle(el).overflowY)))el=el.parentElement;
+    sidebarScrollEl=el&&el!==document.body?el:null;
+  }
+  const el=sidebarScrollEl;if(!el)return;
+  const r=el.getBoundingClientRect();
+  if(y<r.top+40)el.scrollTop-=16;else if(y>r.bottom-40)el.scrollTop+=16;
+}
+let chapterPointerDrag=null;
+function clearChapterDragState(){
+  chapterPointerDrag=null;
+  isDragging=false;
+  document.body.classList.remove('is-chapter-dragging');
+  $$('.fi-chapter-wrap.drop-before,.fi-chapter-wrap.drop-after').forEach(el=>el.classList.remove('drop-before','drop-after'));
+  $$('.fi.is-dragging').forEach(el=>el.classList.remove('is-dragging'));
+}
+function chapterDropTargetAt(x,y,dragged){
+  const el=document.elementFromPoint(x,y);
+  const wrap=el?.closest?.('.fi-chapter-wrap');
+  if(!wrap)return null;
+  const row=wrap.querySelector(':scope > .fi-chapter');
+  const file=row?.dataset.fileName;
+  if(!file||file===dragged)return null;
+  const r=row.getBoundingClientRect();
+  return {file,wrap,after:y>r.bottom||y>r.top+r.height/2};
+}
+function bindChapterDragRow(row,cf){
+  row.dataset.chapterDrag='true';
+  row.addEventListener('mousedown',e=>{
+    if(chapterPointerDrag||questSidebarPointerDrag||e.button!==0||e.target.closest?.('button,input,textarea,select,a,[contenteditable="true"]'))return;
+    chapterPointerDrag={chapter:cf,row,startX:e.clientX,startY:e.clientY,active:false};
+  });
+}
+document.addEventListener('mousemove',e=>{
+  const d=chapterPointerDrag;if(!d)return;
+  if(!d.active){
+    if(Math.hypot(e.clientX-d.startX,e.clientY-d.startY)<8)return;
+    d.active=true;isDragging=true;
+    d.row.classList.add('is-dragging');
+    document.body.classList.add('is-chapter-dragging');
+  }
+  e.preventDefault();
+  $$('.fi-chapter-wrap.drop-before,.fi-chapter-wrap.drop-after').forEach(el=>el.classList.remove('drop-before','drop-after'));
+  const t=chapterDropTargetAt(e.clientX,e.clientY,d.chapter);
+  if(t)t.wrap.classList.add(t.after?'drop-after':'drop-before');
+  autoScrollFileList(e.clientY);
+},true);
+document.addEventListener('mouseup',e=>{
+  const d=chapterPointerDrag;if(!d)return;
+  const wasActive=d.active;
+  const t=wasActive?chapterDropTargetAt(e.clientX,e.clientY,d.chapter):null;
+  clearChapterDragState();
+  if(!wasActive)return;
+  lastSidebarDragEnd=Date.now();
+  if(t)moveInOrder('chapter',d.chapter,t.file,t.after);
+},true);
 
 // ── Rename ────────────────────────────────────────────────────────
 function bindChapterDropTarget(el,cf){
@@ -1966,10 +2067,16 @@ function clearQuestDragState(){
   $$('.drop-target').forEach(el=>el.classList.remove('drop-target'));
   $$('.drop-zone-active').forEach(el=>el.classList.remove('drop-zone-active'));
   $$('.fi.is-dragging').forEach(el=>el.classList.remove('is-dragging'));
+  $$('.fi.drop-before,.fi.drop-after').forEach(el=>el.classList.remove('drop-before','drop-after'));
 }
 function questDropTargetAt(x,y){
   const el=document.elementFromPoint(x,y);
   if(!el)return null;
+  const qrow=listSort==='order'&&draggedQuest?el.closest?.('#fileList .fi[data-kind="quest"]'):null;
+  if(qrow&&qrow.dataset.fileName!==draggedQuest){
+    const r=qrow.getBoundingClientRect();
+    return {type:'quest-row',file:qrow.dataset.fileName,after:y>r.top+r.height/2,el:qrow};
+  }
   const unbound=el.closest?.('[data-unbound-drop="true"]');
   if(unbound)return {type:'unbound',el:unbound};
   const chapter=el.closest?.('[data-chapter-drop]');
@@ -1979,10 +2086,14 @@ function questDropTargetAt(x,y){
 function updateQuestPointerDropTarget(x,y){
   $$('.drop-target').forEach(el=>el.classList.remove('drop-target'));
   $$('.drop-zone-active').forEach(el=>el.classList.remove('drop-zone-active'));
+  $$('.fi.drop-before,.fi.drop-after').forEach(el=>el.classList.remove('drop-before','drop-after'));
   const target=questDropTargetAt(x,y);
-  if(target?.el){
+  if(target?.type==='quest-row'){
+    target.el.classList.add(target.after?'drop-after':'drop-before');
+  }else if(target?.el){
     target.el.classList.add(target.el.classList.contains('fi')?'drop-target':'drop-zone-active');
   }
+  if(target||draggedQuest)autoScrollFileList(y);
   return target;
 }
 function finishQuestPointerDrag(e,cancel=false){
@@ -1992,8 +2103,9 @@ function finishQuestPointerDrag(e,cancel=false){
   const target=!cancel&&wasActive?updateQuestPointerDropTarget(e.clientX,e.clientY):null;
   const quest=drag.quest;
   clearQuestDragState();
-  if(wasActive)suppressNextQuestClick=true;
+  if(wasActive){suppressNextQuestClick=true;lastSidebarDragEnd=Date.now();}
   if(!target||!quest)return;
+  if(target.type==='quest-row'){moveInOrder('quest',quest,target.file,target.after);return;}
   if(target.type==='chapter'&&questBoundCh(quest)!==target.chapter)bindQ(quest,target.chapter);
   else if(target.type==='unbound'&&questBoundCh(quest))unbindQ(quest);
 }
@@ -2015,7 +2127,7 @@ function bindQuestDragRow(row,qn){
     if(e.detail>1||e.target.closest?.('.fi-name,.fi-tag,button,input,textarea,select,a,[contenteditable="true"]'))return;
     clearTimeout(row._questClickTimer);
     row._questClickTimer=setTimeout(()=>{
-      if(!isDragging&&!row.querySelector('.fi-name-input'))selectFile(qn,'quest');
+      if(!isDragging&&Date.now()-lastSidebarDragEnd>450&&!row.querySelector('.fi-name-input'))selectFile(qn,'quest',undefined,{fast:true});
     },220);
   };
   row.ondblclick=e=>{
@@ -2061,7 +2173,7 @@ function startRename(row,oldName,kind){
   const nameEl=row.querySelector('.fi-name');if(!nameEl||nameEl.querySelector('input'))return;
   const base=kind==='chapter'?chapterIdFor(oldName):oldName.replace(/\.json$/i,'');
   const inp=document.createElement('input');inp.className='fi-name-input';inp.value=base;
-  if(kind==='chapter')inp.title='Chapter ID: namespace:name. Type just a name to keep the namespace.';
+  if(kind==='chapter')inp.title='The chapter ID is the file name.';
   nameEl.innerHTML='';nameEl.appendChild(inp);inp.focus();inp.select();
   let done=false;
   const commit=()=>{
@@ -2101,7 +2213,7 @@ function bindFileNameRename(row,name,kind){
     if(e.detail>1)return;
     e.stopPropagation();
     clickTimer=setTimeout(()=>{
-      if(!isDragging&&!nameEl.querySelector('input'))selectFile(name,kind);
+      if(!isDragging&&Date.now()-lastSidebarDragEnd>450&&!nameEl.querySelector('input'))selectFile(name,kind,undefined,{fast:true});
     },240);
   };
 
@@ -2184,7 +2296,7 @@ function renderFileListNow(){
     cRow.classList.add('fi-chapter');
     bindFileNameRename(cRow,cf,'chapter');
     cRow.oncontextmenu=e=>showCtxMenu(e,cf,'chapter');
-    cRow.querySelector('.fi-tag').onclick=e=>{e.stopPropagation();selectFile(cf,'chapter');};
+    cRow.querySelector('.fi-tag').onclick=e=>{e.stopPropagation();selectFile(cf,'chapter',undefined,{fast:true});};
     cRow.querySelector('.fi-tag').title='Select chapter';
     if(chapterQuestCount){
       const arrow=document.createElement('button');
@@ -2197,6 +2309,7 @@ function renderFileListNow(){
       cRow.appendChild(arrow);
     }
     bindChapterDropTarget(cRow,cf);
+    bindChapterDragRow(cRow,cf);
     wrap.appendChild(cRow);
     const kids=document.createElement('div');kids.className='fi-children chapter-drop-zone';
     if(isCollapsed)kids.classList.add('collapsed');
@@ -2208,7 +2321,7 @@ function renderFileListNow(){
       bindQuestDragRow(qRow,qn);
       bindFileNameRename(qRow,qn,'quest');
       qRow.oncontextmenu=e=>showCtxMenu(e,qn,'quest');
-      qRow.querySelector('.fi-tag').onclick=()=>selectFile(qn,'quest');
+      qRow.querySelector('.fi-tag').onclick=()=>selectFile(qn,'quest',undefined,{fast:true});
       kids.appendChild(qRow);
     });
     wrap.appendChild(kids);list.appendChild(wrap);
@@ -2229,7 +2342,7 @@ function renderFileListNow(){
     bindQuestDragRow(qRow,qn);
     bindFileNameRename(qRow,qn,'quest');
     qRow.oncontextmenu=e=>showCtxMenu(e,qn,'quest');
-    qRow.querySelector('.fi-tag').onclick=()=>selectFile(qn,'quest');
+    qRow.querySelector('.fi-tag').onclick=()=>selectFile(qn,'quest',undefined,{fast:true});
     uz.appendChild(qRow);
   });
   if(visibleUnbound.length||questSearch.trim())list.appendChild(uz);
@@ -2259,14 +2372,24 @@ function fileListTagHtml(name,tag){
   return `<span class="fi-tag">${esc(tag)}</span>`;
 }
 
-function selectFile(name,kind,panelKey){
+// Moves the active highlight without rebuilding the list. Returns false if the row is not on screen.
+function refreshSidebarActive(){
+  let found=false;
+  document.querySelectorAll('#fileList .fi').forEach(row=>{
+    const on=row.dataset.fileName===currentFile&&row.dataset.kind===mode;
+    if(on)found=true;
+    if(row.classList.contains('active')!==on)row.classList.toggle('active',on);
+  });
+  return found;
+}
+function selectFile(name,kind,panelKey,opts){
   if(typeof guiStudioSaveActiveDraftToScope==='function')guiStudioSaveActiveDraftToScope();
   currentFile=name;
   mode=kind;
   if(kind==='quest'&&typeof guiStudioSyncActiveScopeForSelection==='function')guiStudioSyncActiveScopeForSelection();
   if(typeof guiStudioRefreshAppliedPreviewsForCurrentSelection==='function')guiStudioRefreshAppliedPreviewsForCurrentSelection();
   if(kind==='quest'&&panelKey)setTab(panelKey);
-  renderFileList();
+  if(!(opts&&opts.fast&&!isDragging&&refreshSidebarActive()))renderFileList();
   renderMain();
   recordActivity('Opened',kind,name);
 }
@@ -2349,7 +2472,7 @@ function slugFile(s){return String(s||'quest').toLowerCase().replace(/[^a-z0-9_.
 function uniqueFileName(base,map){let n=base.endsWith('.json')?base:base+'.json';let i=2;const stem=n.replace(/\.json$/i,'');while(map[n])n=`${stem}_${i++}.json`;return n;}
 function uniqueTemplateTitle(base){let title=String(base||'Custom quest').trim()||'Custom quest';let n=title,i=2;const used=new Set(customTemplates.map(t=>String(t.title||'').toLowerCase()));while(used.has(n.toLowerCase()))n=`${title} ${i++}`;return n;}
 function cloneTemplateQuest(t){const q={title:t.title,description:t.description||'',icon:t.icon||{item:'minecraft:book'},objectives:JSON.parse(JSON.stringify(t.objectives||[])),requirements:JSON.parse(JSON.stringify(t.requirements||[])),rewards:JSON.parse(JSON.stringify(t.rewards||[]))};if(t.completed_sound)q.completed_sound=t.completed_sound;if(t.triggered_sound)q.triggered_sound=t.triggered_sound;if(t.toast_on_unlock!==undefined)q.toast_on_unlock=t.toast_on_unlock;if(t.toast_on_complete!==undefined)q.toast_on_complete=t.toast_on_complete;fixQA(q);return q;}
-function createQuestFromTemplate(t){const fn=uniqueFileName(t.file||slugFile(t.title),quests);const q=cloneTemplateQuest(t);quests[fn]=q;touchFile('quest',fn);recordActivity('Created from template','quest',fn,t.title);selectFile(fn,'quest');showMsg(`Created template: ${t.title}`,true);scheduleAutosave();}
+function createQuestFromTemplate(t){const fn=uniqueFileName(t.file||slugFile(t.title),quests);const q=cloneTemplateQuest(t);quests[fn]=q;appendOrderValue('quest',fn);touchFile('quest',fn);recordActivity('Created from template','quest',fn,t.title);selectFile(fn,'quest');showMsg(`Created template: ${t.title}`,true);scheduleAutosave();}
 function deleteCustomTemplate(index){
   const tpl=customTemplates[index];
   if(!tpl)return;
@@ -7464,7 +7587,7 @@ function questlogListPreviewQuests(chapterId='questlog:main',{strictChapter=fals
       const hay=[q?.title,previewText(q?.description),fileSearchText(fn,'quest')].join(' ').toLowerCase();
       if(!hay.includes(needle))return false;
     }
-    return qChapter===chapterId||(!strictChapter&&chapterId.endsWith(':main')&&q.include_in_main!==false);
+    return qChapter===chapterId||(!strictChapter&&(chapterId==='main'||chapterId.endsWith(':main'))&&q.include_in_main!==false);
   }).map(([file,q])=>({file,q})).sort((a,b)=>{
     const ac=questPreviewIsCompleted(a.file,a.q),bc=questPreviewIsCompleted(b.file,b.q);
     if(ac!==bc)return ac?1:-1;
@@ -14332,14 +14455,14 @@ function bindProgressTools(){
 // ── Quest form ────────────────────────────────────────────────────
 function renderQForm(q){
   const d=(k,v)=>(q[k]!==undefined&&q[k]!==null?q[k]:v);
-  const ch=d('chapter','questlog:main');
+  const ch=d('chapter','main');
   const incMain=q.include_in_main!==undefined?q.include_in_main:defIncMain(ch);
   const badge=d('badge',null);
   return`
 <div class="display-identity-panel">
   <div class="display-icon-preview default-texture" data-tip="Quest icon preview. Uses a default book texture until an icon is configured." aria-label="Quest icon preview"></div>
   <div>
-    <div class="display-identity-fields"><div class="field" data-tip="The player-facing quest title shown in Questlog."><label>Title</label><input type="text" id="qf_title" value="${esc(q.title||'')}" /></div><div class="field" data-tip="Questlog uses this number to order quests inside a chapter."><label>Order</label><input type="number" id="qf_sort_order" value="${d('sort_order',0)}" /></div><div class="field" data-tip="The chapter this quest belongs to, usually namespace:chapter_file_name."><label>Chapter ID</label><input type="text" id="qf_chapter" value="${esc(ch)}" placeholder="questlog:main" list="qfChapterIds" autocomplete="off" spellcheck="false" /><datalist id="qfChapterIds">${Object.keys(chapters).map(f=>`<option value="${esc(chapterIdFor(f))}"></option>`).join('')}</datalist></div></div>
+    <div class="display-identity-fields"><div class="field" data-tip="The player-facing quest title shown in Questlog."><label>Title</label><input type="text" id="qf_title" value="${esc(q.title||'')}" /></div><div class="field" data-tip="Questlog uses this number to order quests inside a chapter."><label>Order</label><input type="number" id="qf_sort_order" value="${d('sort_order',0)}" /></div><div class="field" data-tip="The chapter this quest belongs to, usually namespace:chapter_file_name."><label>Chapter ID</label><input type="text" id="qf_chapter" value="${esc(ch)}" placeholder="main" list="qfChapterIds" autocomplete="off" spellcheck="false" /><datalist id="qfChapterIds">${Object.keys(chapters).map(f=>`<option value="${esc(chapterIdFor(f))}"></option>`).join('')}</datalist></div></div>
     <div class="display-toggles" aria-label="Quest display options"><div class="display-toggle-group"><span class="display-toggle-group-label">File</span><label class="toggle-label" data-tip="Mark the quest text as translatable for language files."><input type="checkbox" id="qf_translatable" ${d('translatable',false)?'checked':''} /> Translatable</label><label class="toggle-label" data-tip="Show this quest in the main Questlog view when appropriate."><input type="checkbox" id="qf_include_in_main" ${incMain?'checked':''} /> Include in main</label><label class="toggle-label" data-tip="Hide even after requirements are met. Usually requirements are enough for normal gating."><input type="checkbox" id="qf_hidden" ${d('hidden',false)?'checked':''} /> Hidden</label></div><div class="display-toggle-group"><span class="display-toggle-group-label">Notify</span><label class="toggle-label" data-tip="Show a toast when this quest becomes available."><input type="checkbox" id="qf_toast_on_unlock" ${d('toast_on_unlock',true)?'checked':''} /> Unlock toast</label><label class="toggle-label" data-tip="Show a toast when this quest is completed."><input type="checkbox" id="qf_toast_on_complete" ${d('toast_on_complete',true)?'checked':''} /> Complete toast</label><label class="toggle-label" data-tip="Show a larger popup when the quest unlocks."><input type="checkbox" id="qf_show_popup_on_unlock" ${d('show_popup_on_unlock',false)?'checked':''} /> Popup</label></div></div>
     <div class="hint display-hidden-hint">Hidden suppresses even after requirements are met. Requirements auto-gate - no need for hidden.</div>
   </div>
@@ -14437,7 +14560,7 @@ function renderQForm(q){
 function renderChForm(c){
   const d=(k,v)=>(c[k]!==undefined?c[k]:v);
   const showListPreview=!['workbench','canvas'].includes(document.body?.dataset.layout);
-  return`<div class="section chapter-editor-section"><div class="sec-body chapter-editor-body"><div class="field" data-tip="The ID quests use to join this chapter, as namespace:name. The name part is the file name. Edit it here and quests pointing at the old ID are updated for you. main.json uses questlog:main."><label>Chapter ID</label><input type="text" id="cf_id" value="${esc(chapterIdFor(currentFile))}" placeholder="namespace:chapter_name" spellcheck="false" autocomplete="off" /></div><div class="g2"><div class="field" data-tip="The player-facing chapter name shown in Questlog."><label>Display name</label><input type="text" id="cf_name" value="${esc(c.name||'')}" /></div><div class="field" data-tip="Questlog uses this number to order chapters."><label>Order</label><input type="number" id="cf_order" value="${d('order',0)}" /></div></div><div style="display:flex;flex-wrap:wrap;gap:12px;margin:10px 0;"><label class="toggle-label" data-tip="Mark chapter text as translatable for language files."><input type="checkbox" id="cf_translatable" ${d('translatable',false)?'checked':''} /> Translatable</label><label class="toggle-label" data-tip="Use this as the default chapter when Questlog opens."><input type="checkbox" id="cf_default_chapter" ${d('default_chapter',false)?'checked':''} /> Default chapter</label><label class="toggle-label" data-tip="Hide the chapter until Questlog conditions reveal it."><input type="checkbox" id="cf_hidden" ${d('hidden',false)?'checked':''} /> Hidden</label></div><div class="hint" style="margin-bottom:10px;">Hidden chapters still show quests if requirements are met.</div><div class="g2">${renderRend('chicon',c.icon)}</div>${showListPreview?`<div class="chapter-list-preview-card"><div class="chapter-list-preview-head"><span>Questlog list preview</span><div class="chapter-list-preview-tools"><small>Uses this chapter and its linked quests.</small></div></div><div class="inline-chapter-list-preview" id="chapterQuestListPreviewMount" aria-label="Live Questlog chapter list preview"></div></div>`:''}</div></div>`;
+  return`<div class="section chapter-editor-section"><div class="sec-body chapter-editor-body"><div class="field" data-tip="The ID quests use to join this chapter. It is the same as the file name, so main.json is main. Rename it here and quests pointing at the old ID are updated for you."><label>Chapter ID</label><input type="text" id="cf_id" value="${esc(chapterIdFor(currentFile))}" placeholder="chapter_name" spellcheck="false" autocomplete="off" /></div><div class="g2"><div class="field" data-tip="The player-facing chapter name shown in Questlog."><label>Display name</label><input type="text" id="cf_name" value="${esc(c.name||'')}" /></div><div class="field" data-tip="Questlog uses this number to order chapters."><label>Order</label><input type="number" id="cf_order" value="${d('order',0)}" /></div></div><div style="display:flex;flex-wrap:wrap;gap:12px;margin:10px 0;"><label class="toggle-label" data-tip="Mark chapter text as translatable for language files."><input type="checkbox" id="cf_translatable" ${d('translatable',false)?'checked':''} /> Translatable</label><label class="toggle-label" data-tip="Use this as the default chapter when Questlog opens."><input type="checkbox" id="cf_default_chapter" ${d('default_chapter',false)?'checked':''} /> Default chapter</label><label class="toggle-label" data-tip="Hide the chapter until Questlog conditions reveal it."><input type="checkbox" id="cf_hidden" ${d('hidden',false)?'checked':''} /> Hidden</label></div><div class="hint" style="margin-bottom:10px;">Hidden chapters still show quests if requirements are met.</div><div class="g2">${renderRend('chicon',c.icon)}</div>${showListPreview?`<div class="chapter-list-preview-card"><div class="chapter-list-preview-head"><span>Questlog list preview</span><div class="chapter-list-preview-tools"><small>Uses this chapter and its linked quests.</small></div></div><div class="inline-chapter-list-preview" id="chapterQuestListPreviewMount" aria-label="Live Questlog chapter list preview"></div></div>`:''}</div></div>`;
 }
 
 // ── Objectives ────────────────────────────────────────────────────
@@ -14593,13 +14716,57 @@ function wrapOC(o,i,isNot,kind='obj'){
 
 function renderOL(c,arr,k){c.innerHTML=arr.map((o,i)=>wrapOC(o,i,false,k)).join('');c.dataset.listKey=k;bindOC(c);}
 
+let progressBlurRenderTimer=0;
+// Re-renders only the edited top-level card of the requirements, objectives or failures list.
+// Returns false when a full form refresh is needed instead.
+function refreshProgressCardOnly(target){
+  if(mode!=='quest'||rawMode||!target?.closest)return false;
+  const root=target.closest('#reqList,#objList,#failList');
+  if(!root)return false;
+  let card=target.closest('.obj-card');
+  while(card&&card.parentElement!==root)card=card.parentElement?.closest('.obj-card');
+  if(!card)return false;
+  const q=getCD();
+  if(!q||q[QL_REQ_SYNC_KEY])return false; // mirrored requirements need the full refresh
+  const active=document.activeElement;
+  const focusables=[...card.querySelectorAll('input,select,textarea,button')];
+  const focusIdx=active&&card.contains(active)?focusables.indexOf(active):-1;
+  syncQ({lists:[root.id]});
+  const arr=q[{reqList:'requirements',objList:'objectives',failList:'failures'}[root.id]];
+  const idx=+card.dataset.i;
+  if(!Array.isArray(arr)||!arr[idx]||card.parentElement!==root)return false;
+  if(root.querySelectorAll(':scope > .obj-card').length!==arr.length)return false;
+  card.outerHTML=wrapOC(arr[idx],idx,false,root.dataset.listKey||'obj');
+  bindOC(root);
+  if(focusIdx>=0){
+    const fresh=root.querySelectorAll(':scope > .obj-card')[idx];
+    fresh?.querySelectorAll('input,select,textarea,button')[focusIdx]?.focus?.();
+  }
+  return true;
+}
+function scheduleProgressBlurRender(target){
+  clearTimeout(progressBlurRenderTimer);
+  progressBlurRenderTimer=setTimeout(()=>{
+    progressBlurRenderTimer=0;
+    if(target&&target.isConnected&&refreshProgressCardOnly(target))return;
+    syncQ();renderMain();
+  },0);
+}
+const PROGRESS_BLUR_FIELDS='.obj-block,.obj-entity,.obj-item,.obj-bitem,.obj-icon';
 function bindOC(root){
   if(!root.dataset.progressBlurBound){
     root.dataset.progressBlurBound='1';
+    root.addEventListener('focusin',e=>{
+      if(e.target?.matches?.(PROGRESS_BLUR_FIELDS))e.target.dataset.qlFocusValue=e.target.value;
+    });
     root.addEventListener('focusout',e=>{
-      if(e.target?.matches?.('.obj-block,.obj-entity,.obj-item,.obj-bitem,.obj-icon')){
+      if(e.__qlBlurHandled)return;
+      if(e.target?.matches?.(PROGRESS_BLUR_FIELDS)){
+        e.__qlBlurHandled=true;
         rememberProgressCardOpenFromControl(e.target);
-        setTimeout(()=>{syncQ();renderMain();},0);
+        // Nothing was typed since the field got focus, so there is nothing to refresh.
+        if(e.target.dataset.qlFocusValue!==undefined&&e.target.dataset.qlFocusValue===e.target.value)return;
+        scheduleProgressBlurRender(e.target);
       }
     });
   }
@@ -14770,12 +14937,16 @@ function setupDescriptionEditor(){
   }
 }
 
+let dropdownDocClickBound=false;
 function setupDropdowns(){
-  // Close all menus on doc click
-  document.addEventListener('click',e=>{
-    $$('.drop-menu.open').forEach(m=>m.classList.remove('open'));
-    if(!e.target?.closest?.('.description-editor,#descSelectionMenu'))hideDescSelectionMenu();
-  });
+  // Close all menus on doc click (registered once, not on every form render)
+  if(!dropdownDocClickBound){
+    dropdownDocClickBound=true;
+    document.addEventListener('click',e=>{
+      $$('.drop-menu.open').forEach(m=>m.classList.remove('open'));
+      if(!e.target?.closest?.('.description-editor,#descSelectionMenu'))hideDescSelectionMenu();
+    });
+  }
   setupDescriptionEditor();
 
   // Insert dropdowns
@@ -14815,7 +14986,7 @@ function bindQForm(){
   applyRequirementSync(q);
   setupDropdowns();bindColorPickers();toggR('icon');
   updateDisplayIconPreview();
-  renderInlineQuestPreview();
+  if(!$('#displayQuestPreviewMount')?.childElementCount)renderInlineQuestPreview();
   $('#advancedLayoutGuiStudioBtn')?.addEventListener('click',()=>openGuiStudio('quest-menu'));
   $$('[data-r^="icon"]').forEach(el=>{el.addEventListener('input',updateDisplayIconPreview);el.addEventListener('change',updateDisplayIconPreview);});
   renderOL($('#reqList'),q.requirements||[],'req');renderOL($('#objList'),q.objectives||[],'obj');renderOL($('#failList'),q.failures||[],'fail');
@@ -14823,10 +14994,14 @@ function bindQForm(){
   rw.querySelectorAll('.rew-card').forEach(card=>{if(isProgressCardOpen('rew',+card.dataset.ri))card.classList.remove('is-collapsed');});
   if(!rw.dataset.progressBlurBound){
     rw.dataset.progressBlurBound='1';
+    rw.addEventListener('focusin',e=>{
+      if(e.target?.matches?.('.rw-item,.rw-icon'))e.target.dataset.qlFocusValue=e.target.value;
+    });
     rw.addEventListener('focusout',e=>{
       if(e.target?.matches?.('.rw-item,.rw-icon')){
         rememberProgressCardOpenFromControl(e.target);
-        setTimeout(()=>{syncQ();renderMain();},0);
+        if(e.target.dataset.qlFocusValue!==undefined&&e.target.dataset.qlFocusValue===e.target.value)return;
+        scheduleProgressBlurRender();
       }
     });
   }
@@ -14876,17 +15051,19 @@ function bindChForm(){
 function pMJ(text,ae){const t=text.trim();if(!t&&ae)return undefined;if(!t)return'';if(t.startsWith('[')||t.startsWith('{'))try{return JSON.parse(t);}catch{return t;}return t;}
 function sOS(obj,k,v){v=v.trim();if(v)obj[k]=v;else delete obj[k];}
 
-function syncQ(){
+function syncQ(opts){
   if(!currentFile||mode!=='quest'||rawMode)return;
+  const onlyLists=opts&&Array.isArray(opts.lists)?new Set(opts.lists):null;
+  const readList=id=>!onlyLists||onlyLists.has(id);
   touchFile('quest',currentFile);
   const q=getCD();
-  q.title=$('#qf_title')?.value||'';q.sort_order=parseInt($('#qf_sort_order')?.value,10)||0;q.chapter=$('#qf_chapter')?.value?.trim()||'questlog:main';q.translatable=$('#qf_translatable')?.checked;q.include_in_main=$('#qf_include_in_main')?.checked;q.hidden=$('#qf_hidden')?.checked;
+  q.title=$('#qf_title')?.value||'';q.sort_order=parseInt($('#qf_sort_order')?.value,10)||0;q.chapter=$('#qf_chapter')?.value?.trim()||'main';q.translatable=$('#qf_translatable')?.checked;q.include_in_main=$('#qf_include_in_main')?.checked;q.hidden=$('#qf_hidden')?.checked;
   const dv=$('#qf_description')?.value||'';q.description=pMJ(dv);if(q.description===''||q.description===undefined)delete q.description;
   const dc=$('#qf_description_completed');q.description_completed=dc?pMJ(dc.value,true):undefined;if(q.description_completed===undefined)delete q.description_completed;
   const df=$('#qf_description_failed');q.description_failed=df?pMJ(df.value,true):undefined;if(q.description_failed===undefined)delete q.description_failed;
   const ik=document.querySelector('[data-r="icon-kind"]')?.value;if(ik==='stringitem'){const v=itemIdInputValue(document.querySelector('[data-r="icon-strv"]'));if(v)q.icon=v;else delete q.icon;}else if(ik==='item'){const v=itemIdInputValue(document.querySelector('[data-r="icon-itemv"]'));if(v)q.icon={item:v};else delete q.icon;}else{const v=document.querySelector('[data-r="icon-texv"]')?.value?.trim();if(v)q.icon={texture:v};else delete q.icon;}
-  q.requirements=readOL($('#reqList'));q.objectives=readOL($('#objList'));const f=readOL($('#failList'));if(f.length)q.failures=f;else delete q.failures;applyRequirementSync(q);
-  q.rewards=[...$('#rewList').querySelectorAll('.rew-card')].map(card=>{const t=card.querySelector('.rew-type').value;const r={type:t};const n=card.querySelector('.rw-name')?.value?.trim();if(n)r.name=n;if(card.querySelector('.rw-trans')?.checked)r.translatable=true;const ic=card.querySelector('.rw-icon')?.value?.trim();if(ic){try{r.icon=JSON.parse(ic);}catch{r.icon=ic;}}const snd=card.querySelector('.rw-sound')?.value?.trim();if(snd)r.claim_sound=snd;if(card.querySelector('.rw-autoclaim')?.checked)r.auto_claim=true;if(t==='questlog:item'){r.item=itemIdInputValue(card.querySelector('.rw-item'),'minecraft:stone');r.count=parseInt(card.querySelector('.rw-count')?.value,10)||1;}else if(t==='questlog:command'){r.command=card.querySelector('.rw-cmd')?.value?.trim()||'/say hi';r.permission_level=parseInt(card.querySelector('.rw-plvl')?.value,10)||2;}else if(t==='questlog:experience'){r.experience=parseInt(card.querySelector('.rw-xp')?.value,10)||0;if(card.querySelector('.rw-levels')?.checked)r.level=true;}else if(t==='questlog:loot_table'){r.loot_table=card.querySelector('.rw-loot')?.value?.trim()||'minecraft:chests/spawn_bonus_chest';}return r;});
+  if(readList('reqList'))q.requirements=readOL($('#reqList'));if(readList('objList'))q.objectives=readOL($('#objList'));if(readList('failList')){const f=readOL($('#failList'));if(f.length)q.failures=f;else delete q.failures;}applyRequirementSync(q);
+  if(readList('rewList'))q.rewards=[...$('#rewList').querySelectorAll('.rew-card')].map(card=>{const t=card.querySelector('.rew-type').value;const r={type:t};const n=card.querySelector('.rw-name')?.value?.trim();if(n)r.name=n;if(card.querySelector('.rw-trans')?.checked)r.translatable=true;const ic=card.querySelector('.rw-icon')?.value?.trim();if(ic){try{r.icon=JSON.parse(ic);}catch{r.icon=ic;}}const snd=card.querySelector('.rw-sound')?.value?.trim();if(snd)r.claim_sound=snd;if(card.querySelector('.rw-autoclaim')?.checked)r.auto_claim=true;if(t==='questlog:item'){r.item=itemIdInputValue(card.querySelector('.rw-item'),'minecraft:stone');r.count=parseInt(card.querySelector('.rw-count')?.value,10)||1;}else if(t==='questlog:command'){r.command=card.querySelector('.rw-cmd')?.value?.trim()||'/say hi';r.permission_level=parseInt(card.querySelector('.rw-plvl')?.value,10)||2;}else if(t==='questlog:experience'){r.experience=parseInt(card.querySelector('.rw-xp')?.value,10)||0;if(card.querySelector('.rw-levels')?.checked)r.level=true;}else if(t==='questlog:loot_table'){r.loot_table=card.querySelector('.rw-loot')?.value?.trim()||'minecraft:chests/spawn_bonus_chest';}return r;});
   const cs=$('#qf_completed_sound')?.value?.trim();if(cs)q.completed_sound=cs;else delete q.completed_sound;const ts=$('#qf_triggered_sound')?.value?.trim();if(ts)q.triggered_sound=ts;else delete q.triggered_sound;
   q.toast_on_unlock=$('#qf_toast_on_unlock')?.checked;q.toast_on_complete=$('#qf_toast_on_complete')?.checked;q.show_popup_on_unlock=$('#qf_show_popup_on_unlock')?.checked;
   sOS(q,'background_texture',$('#qf_background_texture')?.value||'');sOS(q,'right_panel_texture',$('#qf_right_panel_texture')?.value||'');sOS(q,'peripheral_texture',$('#qf_peripheral_texture')?.value||'');sOS(q,'overlay',$('#qf_overlay')?.value||'');
@@ -17408,8 +17585,8 @@ applyPersonalization(loadPersonalization());
 applyGuiStudioTooltipMetadata();
 renderGuiStudioResourcePackShell();
 
-onClick('#btnNewQuest',()=>{let b='new_quest',n=`${b}.json`,i=1;while(quests[n])n=`${b}_${i++}.json`;quests[n]=defQ();touchFile('quest',n);recordActivity('Created','quest',n);selectFile(n,'quest');});
-onClick('#btnNewChapter',()=>{let b='new_chapter',n=`${b}.json`,i=1;while(chapters[n])n=`${b}_${i++}.json`;const isFirst=!Object.keys(chapters).length;chapters[n]=defC();if(isFirst)chapters[n].default_chapter=true;touchFile('chapter',n);recordActivity('Created','chapter',n);selectFile(n,'chapter');});
+onClick('#btnNewQuest',()=>{let b='new_quest',n=`${b}.json`,i=1;while(quests[n])n=`${b}_${i++}.json`;quests[n]=defQ();appendOrderValue('quest',n);touchFile('quest',n);recordActivity('Created','quest',n);selectFile(n,'quest');});
+onClick('#btnNewChapter',()=>{let b='new_chapter',n=`${b}.json`,i=1;while(chapters[n])n=`${b}_${i++}.json`;const isFirst=!Object.keys(chapters).length;chapters[n]=defC();if(isFirst)chapters[n].default_chapter=true;appendOrderValue('chapter',n);touchFile('chapter',n);recordActivity('Created','chapter',n);selectFile(n,'chapter');});
 onEvent('#questListSort','change',e=>setListSort(e.target.value));
 onClick('#questListSortButton',e=>{
   e.preventDefault();
@@ -18881,7 +19058,7 @@ onClick('#btnManualSaveHead',manualSaveNow);
 $('#defaultNs')?.addEventListener('input',()=>{renderFileList();renderValidation();refreshJson();scheduleAutosave();});
 $('#defaultNs')?.addEventListener('change',()=>recordActivity('Changed namespace','project','',$('#defaultNs')?.value.trim()||'questlog'));
 const lj=$('#liveJson');
-const applyLJ=debounce(()=>{if(!currentFile||!getCD())return;try{const p=JSON.parse(lj.value);if(mode==='quest'){fixQA(p);nqbd(p);if(quests[currentFile]&&quests[currentFile][QL_REQ_SYNC_KEY]){p[QL_REQ_SYNC_KEY]=true;applyRequirementSync(p);}trimQ(p);quests[currentFile]=p;touchFile('quest',currentFile);}else{trimCh(p);const keepNs=chapterOwnNamespace(currentFile);delete p[CHAPTER_NS_KEY];if(keepNs)p[CHAPTER_NS_KEY]=keepNs;chapters[currentFile]=p;touchFile('chapter',currentFile);}lj.value=mode==='quest'?stringifyJson(buildQOut(p)):stringifyJson(stripChapterBuilderKeys({...p}));showMsg('JSON applied.',true);renderMain();}catch(err){showMsg(err.message||String(err),false);}},420);
+const applyLJ=debounce(()=>{if(!currentFile||!getCD())return;try{const p=JSON.parse(lj.value);if(mode==='quest'){fixQA(p);nqbd(p);if(quests[currentFile]&&quests[currentFile][QL_REQ_SYNC_KEY]){p[QL_REQ_SYNC_KEY]=true;applyRequirementSync(p);}trimQ(p);quests[currentFile]=p;touchFile('quest',currentFile);}else{trimCh(p);delete p[CHAPTER_NS_KEY];chapters[currentFile]=p;touchFile('chapter',currentFile);}lj.value=mode==='quest'?stringifyJson(buildQOut(p)):stringifyJson(stripChapterBuilderKeys({...p}));showMsg('JSON applied.',true);renderMain();}catch(err){showMsg(err.message||String(err),false);}},420);
 lj.addEventListener('focusin',()=>{jsonFocused=true;});
 lj.addEventListener('focusout',()=>{jsonFocused=false;refreshJson();});
 lj.addEventListener('input',()=>{if(!currentFile)return;applyLJ();});
@@ -18937,7 +19114,7 @@ document.addEventListener('dragstart',e=>{
 },{capture:true});
 $('#btnUndo')?.addEventListener('click',undoWorkbenchOrProject);
 $('#btnRedo')?.addEventListener('click',redoWorkbenchOrProject);
-function onFC(e){if(e&&(e.target===lj||e.target.closest?.('#liveJson,.ql-list-stage,#questlogListPreviewModal')||['viewRaw','questListSort','questSearch','questlogPreviewSearchInput'].includes(e.target.id)))return;if(rawMode)return;if(mode==='quest'){syncQ();recordEditActivity();dRefresh();dPreview();}else if($('#cf_name')){$('#cf_name').oninput?.();recordEditActivity();dPreview();}}
+function onFC(e){if(e&&(e.target===lj||e.target.closest?.('#liveJson,.ql-list-stage,#questlogListPreviewModal')||['viewRaw','questListSort','questSearch','questlogPreviewSearchInput'].includes(e.target.id)))return;if(rawMode)return;if(mode==='quest'){const fast=e&&e.type==='input';const inList=fast?e.target?.closest?.('#reqList,#objList,#failList,#rewList'):null;syncQ(fast?{lists:inList?[inList.id]:[]}:undefined);recordEditActivity();dRefresh();dPreview();}else if($('#cf_name')){$('#cf_name').oninput?.();recordEditActivity();dPreview();}}
 document.body.addEventListener('input',onFC);document.body.addEventListener('change',onFC);
 document.body.addEventListener('input',scheduleAutosave);document.body.addEventListener('change',scheduleAutosave);document.body.addEventListener('click',()=>setTimeout(scheduleAutosave,0));
 onEvent('#validateProject','change',()=>{renderValidation();recordActivity('Changed validation scope','project','',$('#validateProject')?.checked!==false?'Project-wide':'Selected file');});
@@ -18985,7 +19162,7 @@ function showRenameModal(name,kind){
   setRenameModalError('');
   const titleEl=modal.querySelector('.modal-title'),subEl=modal.querySelector('.modal-sub');
   if(titleEl)titleEl.textContent=kind==='chapter'?'Rename chapter':'Rename file';
-  if(subEl)subEl.textContent=kind==='chapter'?'Chapter ID as namespace:name, or just a name to keep the namespace':'Name without .json extension';
+  if(subEl)subEl.textContent=kind==='chapter'?'The chapter ID is the file name, so quests follow the rename':'Name without .json extension';
   input.value=kind==='chapter'?chapterIdFor(name):name.replace(/\.json$/i,'');
   modal.classList.add('open');setTimeout(()=>{input.focus();input.select();},50);
   const commit=()=>{
@@ -19017,8 +19194,8 @@ onClick('#renameCancelBtn',closeRenameModal);
 
 function duplicateFile(name,kind){
   const base=name.replace(/\.json$/i,'');let nn=base+'_copy.json';let i=2;
-  if(kind==='quest'){while(quests[nn])nn=`${base}_copy${i++}.json`;quests[nn]=JSON.parse(JSON.stringify(quests[name]));touchFile('quest',nn);}
-  else{while(chapters[nn])nn=`${base}_copy${i++}.json`;chapters[nn]=JSON.parse(JSON.stringify(chapters[name]));touchFile('chapter',nn);}
+  if(kind==='quest'){while(quests[nn])nn=`${base}_copy${i++}.json`;quests[nn]=JSON.parse(JSON.stringify(quests[name]));appendOrderValue('quest',nn);touchFile('quest',nn);}
+  else{while(chapters[nn])nn=`${base}_copy${i++}.json`;chapters[nn]=JSON.parse(JSON.stringify(chapters[name]));appendOrderValue('chapter',nn);touchFile('chapter',nn);}
   recordActivity('Duplicated',kind,nn,name);
   renderFileList();showMsg(`Duplicated as ${nn}`,true);
 }
