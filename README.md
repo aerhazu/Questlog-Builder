@@ -11,7 +11,7 @@ This is a fork of [ChristyTrusty's](https://github.com/christytrusty) [Questlog 
 
 ## Status
 
-v3.03-copy-paste-sync-1
+3.05-hide-completed-order0-1
 
 ## What It Does
 
