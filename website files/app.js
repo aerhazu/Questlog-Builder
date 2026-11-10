@@ -398,11 +398,13 @@ function ensureReactiveAmbientLight(){
   return light;
 }
 function setReactiveAmbientPoint(x,y,{pulse=false}={}){
-  if(!document.body||!ensureReactiveAmbientLight())return;
+  const light=document.body?ensureReactiveAmbientLight():null;
+  if(!light)return;
   const px=Math.round(Number(x)||0);
   const py=Math.round(Number(y)||0);
-  document.body.style.setProperty('--reactive-light-x',`${px}px`);
-  document.body.style.setProperty('--reactive-light-y',`${py}px`);
+  // Scoped to the light element: setting these on <body> invalidated styles for the whole page on every pointer move.
+  light.style.setProperty('--reactive-light-x',`${px}px`);
+  light.style.setProperty('--reactive-light-y',`${py}px`);
   document.body.classList.remove('reactive-ambient-muted');
   document.body.classList.add('reactive-ambient-on');
   if(pulse){
@@ -1710,6 +1712,14 @@ function fixKnownLegacyIds(q){
 // Builder-only flag on a quest. While true, requirements are a live copy of the objectives.
 // It is stripped from every exported/raw JSON by buildQOut.
 const QL_REQ_SYNC_KEY='_sync_requirements_to_objectives';
+// Some quest files name the unlock list "prerequisites". It is edited as the requirements list and written back under its original name.
+const QL_REQ_KEY_KEY='_requirements_key';
+function adoptPrerequisitesKey(q){
+  if(q&&typeof q==='object'&&Array.isArray(q.prerequisites)&&q.requirements===undefined){
+    q.requirements=q.prerequisites;delete q.prerequisites;q[QL_REQ_KEY_KEY]='prerequisites';return true;
+  }
+  return false;
+}
 function qlpClone(v){return JSON.parse(JSON.stringify(v==null?[]:v));}
 function applyRequirementSync(q){
   if(!q||typeof q!=='object'||!q[QL_REQ_SYNC_KEY])return false;
@@ -2042,6 +2052,30 @@ document.addEventListener('mouseup',e=>{
   if(t)moveInOrder('chapter',d.chapter,t.file,t.after);
 },true);
 
+// ── Pane navigation (tablet drawer + phone bottom bar) ───────────
+// Wide screens show all three panes. Below 1180px the output panel becomes a drawer;
+// below 780px only one pane (files / editor / output) is shown at a time.
+function initPaneNav(){
+  const body=document.body,nav=$('#paneNav'),scrim=$('#paneScrim');
+  if(!nav)return;
+  const phone=window.matchMedia('(max-width:779px)');
+  const setPane=p=>{
+    body.dataset.pane=p;
+    nav.querySelectorAll('[data-pane-target]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.paneTarget===p)));
+    if(scrim)scrim.hidden=!(p==='output'&&!phone.matches);
+  };
+  setPane(phone.matches?'files':'edit');
+  nav.addEventListener('click',e=>{
+    const b=e.target.closest('[data-pane-target]');if(!b)return;
+    const t=b.dataset.paneTarget;
+    setPane(!phone.matches&&t==='output'&&body.dataset.pane==='output'?'edit':t);
+  });
+  scrim?.addEventListener('click',()=>setPane('edit'));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&body.dataset.pane==='output'&&!phone.matches)setPane('edit');});
+  window.__qlPaneOpenEditor=()=>{if(phone.matches)setPane('edit');};
+  phone.addEventListener?.('change',()=>setPane(phone.matches?'files':'edit'));
+  $('#btnExportQuick')?.addEventListener('click',()=>$('#btnDownloadAll')?.click());
+}
 // ── Rename ────────────────────────────────────────────────────────
 function bindChapterDropTarget(el,cf){
   el.dataset.chapterDrop=cf;
@@ -2392,6 +2426,7 @@ function selectFile(name,kind,panelKey,opts){
   if(!(opts&&opts.fast&&!isDragging&&refreshSidebarActive()))renderFileList();
   renderMain();
   recordActivity('Opened',kind,name);
+  if(typeof window.__qlPaneOpenEditor==='function')window.__qlPaneOpenEditor();
 }
 
 // ── Normalize helpers ─────────────────────────────────────────────
@@ -2415,7 +2450,7 @@ function trimQ(q){
   (q.requirements||[]).forEach(finO);(q.objectives||[]).forEach(finO);(q.failures||[]).forEach(finO);(q.rewards||[]).forEach(finR);
 }
 
-function buildQOut(d){const out=JSON.parse(JSON.stringify(d||{}));applyRequirementSync(out);delete out[QL_REQ_SYNC_KEY];fixQA(out);nqbd(out);trimQ(out);const ordered={};const ap=new Set();normOrder(panelOrder).forEach(pk=>{(PANEL_FIELDS[pk]||[]).forEach(f=>{if(Object.prototype.hasOwnProperty.call(out,f)){ordered[f]=out[f];ap.add(f);}});});Object.keys(out).forEach(f=>{if(!ap.has(f))ordered[f]=out[f];});return ordered;}
+function buildQOut(d){const out=JSON.parse(JSON.stringify(d||{}));applyRequirementSync(out);delete out[QL_REQ_SYNC_KEY];const reqKey=out[QL_REQ_KEY_KEY];delete out[QL_REQ_KEY_KEY];fixQA(out);nqbd(out);trimQ(out);const ordered={};const ap=new Set();normOrder(panelOrder).forEach(pk=>{(PANEL_FIELDS[pk]||[]).forEach(f=>{if(Object.prototype.hasOwnProperty.call(out,f)){ordered[f]=out[f];ap.add(f);}});});Object.keys(out).forEach(f=>{if(!ap.has(f))ordered[f]=out[f];});if(reqKey&&reqKey!=='requirements'&&Object.prototype.hasOwnProperty.call(ordered,'requirements')){const renamed={};Object.keys(ordered).forEach(k=>{renamed[k==='requirements'?reqKey:k]=ordered[k];});return renamed;}return ordered;}
 function trimCh(c){if(!c)return;if(c.translatable!==true)delete c.translatable;if(c.order===0||c.order===undefined)delete c.order;if(c.default_chapter!==true)delete c.default_chapter;if(c.hidden!==true)delete c.hidden;if(c.icon===undefined||c.icon===null||c.icon==='')delete c.icon;}
 
 // ── Quest templates ───────────────────────────────────────────────
@@ -2830,7 +2865,52 @@ function endTutorial(markSeen=true){
 function jsonSpace(){return $('#compactJson')?.checked?0:2;}
 function stringifyJson(obj){return JSON.stringify(obj,null,jsonSpace());}
 function downloadBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href);}
-function classifyImportedJson(name,data){const norm=String(name||'import.json').split('/').pop()||'import.json';const isQ=data&&typeof data==='object'&&(data.objectives!==undefined||data.requirements!==undefined||data.rewards!==undefined||data.title!==undefined);if(isQ){fixQA(data);nqbd(data);const fn=uniqueFileName(norm.replace(/\.json$/i,'')+'.json',quests);quests[fn]=data;touchFile('quest',fn);return {kind:'quest',file:fn,source:norm};}const fn=uniqueFileName(norm.replace(/\.json$/i,'')+'.json',chapters);chapters[fn]=data;touchFile('chapter',fn);return {kind:'chapter',file:fn,source:norm};}
+// ── Import: quests and chapters ───────────────────────────────────
+let importReport=null;
+function newImportReport(){return {quests:0,chapters:0,replaced:0,skipped:0,renamed:0,prerequisites:0,failed:[]};}
+function currentImportConflictMode(){return document.querySelector('input[name="importConflict"]:checked')?.value||'rename';}
+function importNormalizeQuest(data){
+  if(adoptPrerequisitesKey(data)&&importReport)importReport.prerequisites++;
+  fixQA(data);nqbd(data);
+  return data;
+}
+// Saves an imported file, applying the "same name already exists" choice (keep both / replace / skip).
+function storeImportedFile(kind,name,data){
+  const store=kind==='quest'?quests:chapters;
+  const base=String(name||'import.json').split('/').pop().replace(/\.json$/i,'')+'.json';
+  const conflict=currentImportConflictMode();
+  let fn=base;
+  if(store[fn]){
+    if(conflict==='skip'){if(importReport)importReport.skipped++;return null;}
+    if(conflict==='replace'){if(importReport)importReport.replaced++;}
+    else{fn=uniqueFileName(base,store);if(importReport)importReport.renamed++;}
+  }
+  store[fn]=data;
+  touchFile(kind,fn);
+  if(importReport)importReport[kind==='quest'?'quests':'chapters']++;
+  return fn;
+}
+function importKindHint(path){
+  const p=String(path||'').replace(/\\/g,'/').toLowerCase();
+  if(/(^|\/)chapters\//.test(p))return 'chapter';
+  if(/(^|\/)quests\//.test(p))return 'quest';
+  return null;
+}
+function looksLikeQuest(d){return ['objectives','requirements','prerequisites','failures','rewards','title','sort_order','chapter'].some(k=>d[k]!==undefined);}
+function classifyImportedJson(name,data){
+  if(!data||typeof data!=='object'||Array.isArray(data))throw new Error('Not a quest or chapter object.');
+  const norm=String(name||'import.json').replace(/\\/g,'/').split('/').pop()||'import.json';
+  const hint=importKindHint(name);
+  const isQ=hint?hint==='quest':looksLikeQuest(data);
+  if(isQ){
+    importNormalizeQuest(data);
+    const fn=storeImportedFile('quest',norm,data);
+    return fn?{kind:'quest',file:fn,source:norm}:null;
+  }
+  delete data[CHAPTER_NS_KEY];
+  const fn=storeImportedFile('chapter',norm,data);
+  return fn?{kind:'chapter',file:fn,source:norm}:null;
+}
 function normalizeZipPath(name){return String(name||'').replace(/\\/g,'/');}
 function questlogConfigImportKind(path){
   const norm=normalizeZipPath(path);
@@ -2898,15 +2978,16 @@ async function importZipFile(file){if(typeof JSZip==='undefined')throw new Error
         if(builderExport||shouldSkipZipJsonImport(ent.name))continue;
         const txt=await ent.async('string');
         const data=JSON.parse(txt);
-        imported.push(classifyImportedJson(ent.name,data));
+        const classified=classifyImportedJson(ent.name,data);
+        if(classified)imported.push(classified);
         continue;
       }
       const txt=await ent.async('string');
       const data=JSON.parse(txt);
       const rel=normalizeZipPath(ent.name).replace(/^.*config\/questlog\//i,'');
       const base=rel.split('/').pop()||'import.json';
-      if(kind==='quest'){fixQA(data);nqbd(data);const fn=uniqueFileName(base,quests);quests[fn]=data;touchFile('quest',fn);imported.push({kind,file:fn,source:base});}
-      else{const fn=uniqueFileName(base,chapters);chapters[fn]=data;touchFile('chapter',fn);imported.push({kind,file:fn,source:base});}
+      const storedName=storeImportedFile(kind,base,kind==='quest'?importNormalizeQuest(data):data);
+      if(storedName)imported.push({kind,file:storedName,source:base});
     }catch(err){console.warn('[zip import]',ent.name,err);}
   }
   if(builderManifest)restoredBuilderState=restoreImportedBuilderProjectState(builderManifest,imported);
@@ -2919,28 +3000,139 @@ async function importZipFile(file){if(typeof JSZip==='undefined')throw new Error
   renderValidation();scheduleAutosave();return imported.length;}
 async function handleImportFiles(fileList,source='Imported'){
   const arr=Array.from(fileList||[]);if(!arr.length)return 0;
-  let first=null,ok=0,skipped=0;
+  if(currentFile&&getCD())syncVisibleStateForHistory();
+  pushHistorySnapshot(); // one undo step for the whole import
+  importReport=newImportReport();
+  let first=null,ok=0,unsupported=0;
   for(const file of arr){
     const name=(file.name||'').toLowerCase();
+    const path=file.webkitRelativePath||file.name||'';
     try{
       if(name.endsWith('.zip')){ok+=await importZipFile(file);if(!first&&currentFile)first={file:currentFile,kind:mode};continue;}
-      if(!name.endsWith('.json')){skipped++;continue;}
-      const text=await file.text();
-      const data=JSON.parse(text);
-      const res=classifyImportedJson(file.name,data);
-      ok++;
-      if(!first)first=res;
-    }catch(err){showMsg(`${file.name}: ${err.message||String(err)}`,false);}
+      if(!name.endsWith('.json')){unsupported++;continue;}
+      const data=JSON.parse(await file.text());
+      const res=classifyImportedJson(path,data);
+      if(res){ok++;if(!first)first=res;}
+    }catch(err){importReport.failed.push(`${file.name}: ${err.message||String(err)}`);}
   }
   renderFileList();
   if(first)selectFile(first.file,first.kind);else renderMain();
   renderValidation();
   if(ok)recordActivity(source,'project','',`${ok} files`);
   scheduleAutosave();
-  if(ok)showMsg(`${source} ${ok} file${ok===1?'':'s'}.`,true);
-  if(skipped)showMsg(`Skipped ${skipped} unsupported file${skipped===1?'':'s'}. Drop .json or .zip files.`,false);
+  finishImportReport(source,ok,unsupported);
   return ok;
 }
+function finishImportReport(source,ok,unsupported){
+  const r=importReport;if(!r)return;
+  const parts=[];
+  if(r.quests)parts.push(`${r.quests} quest${r.quests===1?'':'s'}`);
+  if(r.chapters)parts.push(`${r.chapters} chapter${r.chapters===1?'':'s'}`);
+  const summary=parts.length?`${source==='Pasted'?'Added':'Imported'} ${parts.join(' and ')}.`:'Nothing was imported.';
+  const notes=[];
+  if(r.replaced)notes.push(`${r.replaced} existing file${r.replaced===1?' was':'s were'} replaced.`);
+  if(r.renamed)notes.push(`${r.renamed} file${r.renamed===1?' was':'s were'} renamed so nothing was overwritten (a number was added).`);
+  if(r.skipped)notes.push(`${r.skipped} file${r.skipped===1?' was':'s were'} skipped because the name already exists.`);
+  if(r.prerequisites)notes.push(`${r.prerequisites} quest${r.prerequisites===1?'':'s'} use the "prerequisites" key. It shows as Requirements here and is exported under the same key.`);
+  if(unsupported)notes.push(`${unsupported} unsupported file${unsupported===1?'':'s'} ignored. Use .json or .zip files.`);
+  r.failed.forEach(f=>notes.push(f));
+  renderImportReport(summary,notes,parts.length>0);
+  showMsg(summary,parts.length>0);
+}
+function renderImportReport(summary,notes,ok){
+  const el=$('#importReport');if(!el)return;
+  el.hidden=false;
+  el.className='import-report '+(ok?'ok':'warn');
+  el.innerHTML=`<strong>${esc(summary)}</strong>${notes.length?`<ul>${notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>`:''}`;
+}
+// Dropped folders arrive as directory entries; walk them so quests/ and chapters/ subfolders are imported.
+async function collectDroppedFiles(dt){
+  const items=Array.from(dt?.items||[]);
+  const entries=items.map(i=>i.webkitGetAsEntry?.()).filter(Boolean);
+  if(!entries.length)return Array.from(dt?.files||[]);
+  const out=[];
+  const walk=async(entry,path)=>{
+    if(entry.isFile){
+      await new Promise(res=>entry.file(f=>{try{Object.defineProperty(f,'webkitRelativePath',{value:path+f.name});}catch(_e){}out.push(f);res();},res));
+    }else if(entry.isDirectory){
+      const reader=entry.createReader();
+      let batch;
+      do{
+        batch=await new Promise(res=>reader.readEntries(res,()=>res([])));
+        for(const child of batch)await walk(child,path+entry.name+'/');
+      }while(batch.length);
+    }
+  };
+  for(const entry of entries)await walk(entry,'');
+  return out;
+}
+function openImportModal(){
+  const m=$('#importModal');if(!m)return;
+  closeSidebarMenus?.();
+  $('#importReport')?.setAttribute('hidden','');
+  m.classList.add('open');m.setAttribute('aria-hidden','false');
+  setTimeout(()=>$('#btnPickImport')?.focus(),30);
+}
+function closeImportModal(){
+  const m=$('#importModal');if(!m)return;
+  m.classList.remove('open');m.setAttribute('aria-hidden','true');
+}
+async function importPastedJson(){
+  const ta=$('#importPasteText');
+  const text=(ta?.value||'').trim();
+  if(!text){showMsg('Paste some JSON first.',false);return;}
+  let data;
+  try{data=JSON.parse(text);}catch(err){showMsg('That is not valid JSON: '+(err.message||err),false);return;}
+  const kind=$('#importPasteKind')?.value||'auto';
+  const given=($('#importPasteName')?.value||'').trim().replace(/\.json$/i,'');
+  const prefix=kind==='quest'?'quests/':kind==='chapter'?'chapters/':'';
+  const list=Array.isArray(data)?data:[data];
+  const files=list.map((item,i)=>{
+    const stem=(given||'pasted')+(list.length>1?`_${i+1}`:'');
+    return {name:stem+'.json',webkitRelativePath:prefix+stem+'.json',text:async()=>JSON.stringify(item)};
+  });
+  const n=await handleImportFiles(files,'Pasted');
+  if(n&&ta)ta.value='';
+}
+// Exports only config/questlog/quests and config/questlog/chapters (no resource pack, no manifest).
+async function exportQuestsAndChaptersZip(){
+  if(typeof JSZip==='undefined'){showMsg('JSZip failed to load.',false);return;}
+  const questNames=Object.keys(quests),chapterNames=Object.keys(chapters);
+  if(!questNames.length&&!chapterNames.length){showMsg('There are no quests or chapters to export yet.',false);return;}
+  syncCurrentForExport();
+  const zip=new JSZip();
+  const meta=loadExportMetadata();
+  Object.entries(quests).forEach(([n,o])=>zip.file(`config/questlog/quests/${n}`,stringifyJson(buildQuestExportObject(n,o,{layoutInfo:null,meta}))));
+  Object.entries(chapters).forEach(([n,c])=>{
+    const cp=JSON.parse(JSON.stringify(c));
+    trimCh(cp);stripChapterBuilderKeys(cp);
+    zip.file(`config/questlog/chapters/${n}`,stringifyJson(cp));
+  });
+  const blob=await zip.generateAsync({type:'blob'});
+  downloadBlob(blob,'questlog_quests_and_chapters.zip');
+  recordActivity('Exported quests and chapters','project','',`${questNames.length} quests, ${chapterNames.length} chapters`);
+  let issues=0;
+  try{const r=validateAll(false);issues=Array.isArray(r)?r.length:0;}catch(_err){}
+  showMsg(`Exported ${questNames.length} quest${questNames.length===1?'':'s'} and ${chapterNames.length} chapter${chapterNames.length===1?'':'s'}.${issues?` ${issues} check${issues===1?'':'s'} still need attention.`:''}`,true);
+}
+function initImportExportUi(){
+  $('#btnOpenImport')?.addEventListener('click',e=>{e.preventDefault();openImportModal();});
+  $('#importCloseBtn')?.addEventListener('click',closeImportModal);
+  $('#importModal')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeImportModal();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#importModal')?.classList.contains('open'))closeImportModal();});
+  $('#btnPickImportFolder')?.addEventListener('click',()=>$('#importFolderInput')?.click());
+  $('#importFolderInput')?.addEventListener('change',async e=>{
+    const files=Array.from(e.target.files||[]);
+    e.target.value='';
+    await handleImportFiles(files,'Imported');
+  });
+  $('#btnImportPaste')?.addEventListener('click',importPastedJson);
+  $('#btnExportQuestsOnly')?.addEventListener('click',e=>{e.preventDefault();exportQuestsAndChaptersZip();});
+  document.addEventListener('click',e=>{
+    if(e.target.closest?.('#exportPreviewQuestsOnlyBtn')){e.preventDefault();e.stopPropagation();exportQuestsAndChaptersZip();}
+  },true);
+}
+
 function setupDropImport(){
   const overlay=$('#importDropOverlay');let depth=0;
   const hasFiles=e=>Array.from(e.dataTransfer?.types||[]).includes('Files');
@@ -2949,7 +3141,7 @@ function setupDropImport(){
   document.addEventListener('dragenter',e=>{if(!hasFiles(e))return;depth++;show();});
   document.addEventListener('dragover',e=>{if(!hasFiles(e))return;e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='copy';show();});
   document.addEventListener('dragleave',e=>{if(!hasFiles(e))return;depth=Math.max(0,depth-1);if(depth===0)overlay?.classList.remove('open');});
-  document.addEventListener('drop',async e=>{if(!hasFiles(e))return;e.preventDefault();const files=e.dataTransfer?.files;hide();await handleImportFiles(files,'Dropped');});
+  document.addEventListener('drop',async e=>{if(!hasFiles(e))return;e.preventDefault();const filesPromise=collectDroppedFiles(e.dataTransfer);hide();await handleImportFiles(await filesPromise,'Dropped');});
   window.addEventListener('blur',hide);
 }
 
@@ -3358,6 +3550,7 @@ function renderExportPreview(){
           <button class="export-download-button ${esc(ready.level)} ${overrideActive?'override':''}" id="exportPreviewZipBtn" type="button" aria-label="${overrideActive?'Export ZIP with readiness override.':'blocked'===ready.level?'ZIP not ready. Fix blocking checks before exporting.':'Export ZIP'}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>
           </button>
+          <button type="button" class="export-secondary-btn" id="exportPreviewQuestsOnlyBtn" title="Download only the quest and chapter JSON files (config/questlog/quests and chapters), without the resource pack.">Quests &amp; chapters only</button>
         </div>
       </div>
       <div class="export-project-tree-panel">
@@ -3405,17 +3598,6 @@ function closeExportPreviewModal(){
   if(wasOpen)playUiSound('panel');
 }
 function bindExportPreviewControls(){
-  const files=$('#btnImportExportMenu');
-  if(files&&!files.dataset.exportPreviewBound){
-    files.dataset.exportPreviewBound='true';
-    const openFilesExport=e=>{
-      e.preventDefault();
-      e.stopPropagation();
-      openExportPreviewModal();
-    };
-    files.addEventListener('click',openFilesExport);
-    files.addEventListener('pointerup',openFilesExport);
-  }
   const closeButtons=$$('#exportPreviewCloseBtn,#exportPreviewCancelBtn');
   closeButtons.forEach(btn=>{
     if(btn.dataset.exportPreviewBound)return;
@@ -14463,7 +14645,7 @@ function renderQForm(q){
   <div class="display-icon-preview default-texture" data-tip="Quest icon preview. Uses a default book texture until an icon is configured." aria-label="Quest icon preview"></div>
   <div>
     <div class="display-identity-fields"><div class="field" data-tip="The player-facing quest title shown in Questlog."><label>Title</label><input type="text" id="qf_title" value="${esc(q.title||'')}" /></div><div class="field" data-tip="Questlog uses this number to order quests inside a chapter."><label>Order</label><input type="number" id="qf_sort_order" value="${d('sort_order',0)}" /></div><div class="field" data-tip="The chapter this quest belongs to, usually namespace:chapter_file_name."><label>Chapter ID</label><input type="text" id="qf_chapter" value="${esc(ch)}" placeholder="main" list="qfChapterIds" autocomplete="off" spellcheck="false" /><datalist id="qfChapterIds">${Object.keys(chapters).map(f=>`<option value="${esc(chapterIdFor(f))}"></option>`).join('')}</datalist></div></div>
-    <div class="display-toggles" aria-label="Quest display options"><div class="display-toggle-group"><span class="display-toggle-group-label">File</span><label class="toggle-label" data-tip="Mark the quest text as translatable for language files."><input type="checkbox" id="qf_translatable" ${d('translatable',false)?'checked':''} /> Translatable</label><label class="toggle-label" data-tip="Show this quest in the main Questlog view when appropriate."><input type="checkbox" id="qf_include_in_main" ${incMain?'checked':''} /> Include in main</label><label class="toggle-label" data-tip="Hide even after requirements are met. Usually requirements are enough for normal gating."><input type="checkbox" id="qf_hidden" ${d('hidden',false)?'checked':''} /> Hidden</label><label class="toggle-label" data-tip="Hide this quest from the quest list once the player has completed it and claimed rewards."><input type="checkbox" id="qf_hide_when_completed" ${d('hide_when_completed',false)?'checked':''} /> Hide when completed</label></div><div class="display-toggle-group"><span class="display-toggle-group-label">Notify</span><label class="toggle-label" data-tip="Show a toast when this quest becomes available."><input type="checkbox" id="qf_toast_on_unlock" ${d('toast_on_unlock',true)?'checked':''} /> Unlock toast</label><label class="toggle-label" data-tip="Show a toast when this quest is completed."><input type="checkbox" id="qf_toast_on_complete" ${d('toast_on_complete',true)?'checked':''} /> Complete toast</label><label class="toggle-label" data-tip="Show a larger popup when the quest unlocks."><input type="checkbox" id="qf_show_popup_on_unlock" ${d('show_popup_on_unlock',false)?'checked':''} /> Popup</label></div></div>
+    <div class="display-toggles" aria-label="Quest display options"><div class="display-toggle-group"><span class="display-toggle-group-label">File</span><label class="toggle-label" data-tip="Mark the quest text as translatable for language files."><input type="checkbox" id="qf_translatable" ${d('translatable',false)?'checked':''} /> Translatable</label><label class="toggle-label" data-tip="Show this quest in the main Questlog view when appropriate."><input type="checkbox" id="qf_include_in_main" ${incMain?'checked':''} /> Include in main</label><label class="toggle-label" data-tip="Hide even after requirements are met. Usually requirements are enough for normal gating."><input type="checkbox" id="qf_hidden" ${d('hidden',false)?'checked':''} /> Hidden</label><label class="toggle-label" data-tip="Hide this quest from the quest list once the player has completed it."><input type="checkbox" id="qf_hide_when_completed" ${d('hide_when_completed',false)?'checked':''} /> Hide when completed</label></div><div class="display-toggle-group"><span class="display-toggle-group-label">Notify</span><label class="toggle-label" data-tip="Show a toast when this quest becomes available."><input type="checkbox" id="qf_toast_on_unlock" ${d('toast_on_unlock',true)?'checked':''} /> Unlock toast</label><label class="toggle-label" data-tip="Show a toast when this quest is completed."><input type="checkbox" id="qf_toast_on_complete" ${d('toast_on_complete',true)?'checked':''} /> Complete toast</label><label class="toggle-label" data-tip="Show a larger popup when the quest unlocks."><input type="checkbox" id="qf_show_popup_on_unlock" ${d('show_popup_on_unlock',false)?'checked':''} /> Popup</label></div></div>
     <div class="hint display-hidden-hint">Hidden suppresses even after requirements are met. Requirements auto-gate - no need for hidden.</div>
   </div>
 </div>
@@ -15678,22 +15860,7 @@ function toggleSidebarMenu(buttonId,menuId){
 }
 toggleSidebarMenu('#btnAddMenu','#addMenu');
 toggleSidebarMenu('#btnImportExportMenu','#importExportMenu');
-const sidebarFilesExportBtn=$('#btnImportExportMenu');
-if(sidebarFilesExportBtn){
-  sidebarFilesExportBtn.onclick=e=>{
-    e.preventDefault();
-    e.stopPropagation();
-    openExportPreviewModal();
-  };
-}
 document.addEventListener('click',e=>{
-  const files=e.target.closest?.('#btnImportExportMenu');
-  if(files){
-    e.preventDefault();
-    e.stopPropagation();
-    openExportPreviewModal();
-    return;
-  }
   const close=e.target.closest?.('#exportPreviewCloseBtn,#exportPreviewCancelBtn');
   if(close){
     e.preventDefault();
@@ -19058,7 +19225,7 @@ onClick('#btnManualSaveHead',manualSaveNow);
 $('#defaultNs')?.addEventListener('input',()=>{renderFileList();renderValidation();refreshJson();scheduleAutosave();});
 $('#defaultNs')?.addEventListener('change',()=>recordActivity('Changed namespace','project','',$('#defaultNs')?.value.trim()||'questlog'));
 const lj=$('#liveJson');
-const applyLJ=debounce(()=>{if(!currentFile||!getCD())return;try{const p=JSON.parse(lj.value);if(mode==='quest'){fixQA(p);nqbd(p);if(quests[currentFile]&&quests[currentFile][QL_REQ_SYNC_KEY]){p[QL_REQ_SYNC_KEY]=true;applyRequirementSync(p);}trimQ(p);quests[currentFile]=p;touchFile('quest',currentFile);}else{trimCh(p);delete p[CHAPTER_NS_KEY];chapters[currentFile]=p;touchFile('chapter',currentFile);}lj.value=mode==='quest'?stringifyJson(buildQOut(p)):stringifyJson(stripChapterBuilderKeys({...p}));showMsg('JSON applied.',true);renderMain();}catch(err){showMsg(err.message||String(err),false);}},420);
+const applyLJ=debounce(()=>{if(!currentFile||!getCD())return;try{const p=JSON.parse(lj.value);if(mode==='quest'){adoptPrerequisitesKey(p);fixQA(p);nqbd(p);if(quests[currentFile]&&quests[currentFile][QL_REQ_SYNC_KEY]){p[QL_REQ_SYNC_KEY]=true;applyRequirementSync(p);}trimQ(p);quests[currentFile]=p;touchFile('quest',currentFile);}else{trimCh(p);delete p[CHAPTER_NS_KEY];chapters[currentFile]=p;touchFile('chapter',currentFile);}lj.value=mode==='quest'?stringifyJson(buildQOut(p)):stringifyJson(stripChapterBuilderKeys({...p}));showMsg('JSON applied.',true);renderMain();}catch(err){showMsg(err.message||String(err),false);}},420);
 lj.addEventListener('focusin',()=>{jsonFocused=true;});
 lj.addEventListener('focusout',()=>{jsonFocused=false;refreshJson();});
 lj.addEventListener('input',()=>{if(!currentFile)return;applyLJ();});
@@ -19308,6 +19475,8 @@ bindExportPreviewControls();
 if(restored)scheduleGuiStudioRestorePreviewRefresh();
 maybeRunExportAtlasSelfTestFromUrl();
 initReactiveAmbientLight();
+initPaneNav();
+initImportExportUi();
 saveAutosaveNow('init');
 updateHistoryButtons();
 setTimeout(()=>openTutorialPrompt(false),500);
