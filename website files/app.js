@@ -3117,6 +3117,7 @@ async function exportQuestsAndChaptersZip(){
 }
 function initImportExportUi(){
   $('#btnOpenImport')?.addEventListener('click',e=>{e.preventDefault();openImportModal();});
+  $('#btnImportQuick')?.addEventListener('click',e=>{e.preventDefault();openImportModal();});
   $('#importCloseBtn')?.addEventListener('click',closeImportModal);
   $('#importModal')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeImportModal();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#importModal')?.classList.contains('open'))closeImportModal();});

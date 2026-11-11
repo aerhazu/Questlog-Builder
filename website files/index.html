@@ -4,7 +4,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Questlog JSON Editor</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23131210'/%3E%3Crect x='7' y='7' width='7' height='7' rx='1' fill='%23d4924a'/%3E%3Crect x='18' y='7' width='7' height='7' rx='1' fill='%23d4924a'/%3E%3Crect x='7' y='18' width='7' height='7' rx='1' fill='%23d4924a'/%3E%3Crect x='18' y='18' width='7' height='7' rx='1' fill='%23e6e2d6'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=4.02-import-export-1">
+  <link rel="stylesheet" href="style.css?v=4.03-brand-import-1">
 
 </head>
 <body>
@@ -352,6 +352,7 @@
     </div>
     <div class="sidebar-list-head">
       <span class="sidebar-list-title">Chapters</span>
+      <button class="btn sidebar-list-import" id="btnImportQuick" type="button" aria-label="Import quests and chapters" data-tip="Import your own quest and chapter files, a folder, a ZIP, or pasted JSON."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg><span>Import</span></button>
       <div class="sidebar-menu-wrap">
         <button class="btn btn-primary sidebar-list-add" id="btnAddMenu" type="button" aria-label="Add quest or chapter" data-tip="Create a quest or chapter."></button>
         <div class="sidebar-menu" id="addMenu">
@@ -1476,7 +1477,7 @@
 <script src="mod-id-packs/abyss_ii.js?v=3.0-mod-support-final-manual-source-1"></script>
 <script src="minecraft-texture-index.js?v=3.0-minecraft-textures-1"></script>
 <script src="minecraft-entity-texture-index.js?v=3.0-entity-textures-1"></script>
-<script src="app.js?v=4.02-import-export-1"></script>
+<script src="app.js?v=4.03-brand-import-1"></script>
 <script>
   window.QUESTLOG_HTML_VERSION='3.01';
   setTimeout(function(){
