@@ -305,6 +305,16 @@ window.MOD_ID_PACKS = {
       verificationNote: '1.21.1 NeoForge availability and canonical mod ID checked from Modrinth version VDKQwJUs and jar META-INF/neoforge.mods.toml; block IDs were checked against jar blockstates plus lang names, item IDs against jar item models plus lang/block names, entity IDs against jar lang entity keys, and sound IDs against jar assets/tide/sounds.json on 2026-05-28.'
     },
     {
+      id: 'farm_and_charm',
+      name: 'Farm & Charm',
+      description: 'Farming and farmhouse expansion featuring new crops, grains, fruit varieties, functional farm blocks, animal care, food processing, cooking stations, and rustic decorations.',
+      category: 'Farming and agriculture',
+      modIds: ['farm_and_charm'],
+      supportedVersions: ['1.21.1', '1.21', '1.20.1'],
+      sourceUrl: 'https://modrinth.com/mod/lets-do-farm-charm',
+      verificationNote: 'Minecraft version compatibility and project information checked against the official Modrinth listing on 2026-11-12. Canonical mod ID identified as farm_and_charm. Individual registry IDs and assets have not been independently verified against a JAR file.'
+    },
+    {
       id: 'whaleborne',
       name: 'Whaleborne',
       description: 'Ocean adventure content with hullback mob, ship-control items, barnacle blocks, and hullback sounds.',
