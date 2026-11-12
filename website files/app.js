@@ -575,6 +575,20 @@ async function runEditorImprovementsSelfTest(){
  sidebarSelection.clear();['a.json','b.json'].forEach(n=>sidebarSelection.add(sidebarKey('quest',n)));moveInOrder('quest','a.json','c.json',true);checks.groupOrder=JSON.stringify(orderedGroup('quest','two.json'))===JSON.stringify(['c.json','a.json','b.json']);checks.sourceRenumbered=orderedGroup('quest','one.json').every((n,i)=>quests[n].sort_order===i);
  const host=document.createElement('div');host.innerHTML=wrapOC({type:'questlog:and',objectives:[{type:'questlog:origin',origin:'origins:avian'}]},0,false,'obj');const objective=readOC(host.firstElementChild);checks.andOriginRoundTrip=objective.type==='questlog:and'&&objective.objectives[0].origin==='origins:avian';
  const reward={type:'questlog:experience',experience:5,level:true};finR(reward);checks.levelsExport=reward.levels===true&&!('level' in reward);
+ currentFile='a.json';mode='quest';renderMain();
+ for(const [id,key] of [['qf_details_open','details_open_by_default'],['qf_details_disabled','disable_details_button']]){
+  checks[key+'ToggleRoundTrip']=true;
+  for(const expected of [true,false,true,false]){
+   const input=$('#'+id);if(input.checked!==expected)input.closest('label').click();
+   await new Promise(resolve=>setTimeout(resolve,240));
+   checks[key+'ToggleRoundTrip']&&=input.checked===expected&&quests[currentFile][key]===expected&&JSON.parse($('#liveJson').value)[key]===expected&&JSON.parse($('.json-highlight').textContent)[key]===expected;
+  }
+  renderMain();checks[key+'SurvivesRender']=$('#'+id).checked===false;
+ }
+ checks.compactQuestOptions=$$('.compact-options > .toggle-label').length===11&&!$('.compact-options .display-toggle-group');
+ mode='chapter';currentFile='one.json';renderMain();$('#cf_name').value='Renamed chapter';$('#cf_name').dispatchEvent(new Event('input',{bubbles:true}));$('#cf_hidden').click();
+ checks.chapterHistoryLocation=!!$('#chapterTabSlot .form-tabs-row #btnUndo')&&!$('#formTabs').querySelector('.tab-btn');
+ checks.chapterControls=chapters['one.json'].name==='Renamed chapter'&&chapters['one.json'].hidden===true&&!!$('.chapter-identity-panel')&&!!$('.chapter-options')&&!!$('.chapter-icon-panel');
  const html=highlightJsonText('{"key":"<script>","n":2,"b":true,"x":null}');checks.highlightEscapes=html.includes('&lt;script&gt;')&&!html.includes('<script>');checks.highlightKinds=['key','string','number','boolean','null'].every(k=>html.includes('json-'+k));
  const issues=[];validateReward({type:'questlog:random',roll_count:1,entries:[{weight:1,reward:{type:'questlog:experience',experience:5}}]},issues,'test.json','quest','rewards');checks.randomValidation=!issues.some(i=>i.level==='error'||i.severity==='error');
  writeExportAtlasSelfTestResult(Object.values(checks).every(Boolean)?'passed':'failed',{test:'editor-improvements',checks});
@@ -595,6 +609,7 @@ function paintSidebarSelection(){
  const key=sidebarKey(row.dataset.kind,row.dataset.fileName);
  row.classList.toggle('multi-selected',sidebarSelection.has(key));row.setAttribute('aria-selected',String(sidebarSelection.has(key)));row.tabIndex=0;row.setAttribute('role','option');
  });
+ const summary=$('#sidebarSelectionSummary');if(summary){summary.hidden=sidebarSelection.size<2;const text=sidebarSelection.size+' selected · Esc to clear';if(summary.textContent!==text)summary.textContent=text;}
 }
 function moveSidebarGroup(kind,names,target,after,chapter){
  if(target&&names.includes(target))return false;
@@ -627,7 +642,7 @@ function initEditorImprovements(){
   event.preventDefault();
   if(key==='y'||event.shiftKey)redoWorkbenchOrProject();else undoWorkbenchOrProject();
  });
- const list=$('#fileList');list.setAttribute('role','listbox');list.setAttribute('aria-label','Quest and chapter files');list.setAttribute('aria-multiselectable','true');
+ const list=$('#fileList');const selectionSummary=document.createElement('div');selectionSummary.id='sidebarSelectionSummary';selectionSummary.className='sidebar-selection-summary';selectionSummary.hidden=true;selectionSummary.setAttribute('role','status');list.before(selectionSummary);list.setAttribute('role','listbox');list.setAttribute('aria-label','Quest and chapter files');list.setAttribute('aria-multiselectable','true');
  list.addEventListener('click',e=>{
  const row=e.target.closest('.fi');if(!row||e.target.closest('button,input,textarea'))return;
  if(Date.now()-lastSidebarDragEnd<450)return;
@@ -644,7 +659,8 @@ function initEditorImprovements(){
  let last=null;
  const draw=()=>{const cs=getComputedStyle(ta);['font','lineHeight','letterSpacing','padding','boxSizing','whiteSpace','wordBreak','overflowWrap','tabSize','borderRadius'].forEach(k=>pre.style[k]=cs[k]);pre.style.width=ta.offsetWidth+'px';pre.style.height=ta.offsetHeight+'px';pre.style.left=ta.offsetLeft+'px';pre.style.top=ta.offsetTop+'px';pre.style.transition='none';pre.style.backgroundColor='var(--bg)';let bgColor=getComputedStyle(pre).backgroundColor;for(let node=ta.parentElement;node&&(bgColor==='transparent'||bgColor==='rgba(0, 0, 0, 0)');node=node.parentElement)bgColor=getComputedStyle(node).backgroundColor;pre.style.background=bgColor;const bg=bgColor.match(/[\d.]+/g)||[20,20,20];const light=Number(bg[0])+Number(bg[1])+Number(bg[2])>450;pre.classList.toggle('json-light',light);pre.style.background=`color-mix(in srgb,${bgColor} 12%,${light?'#ffffff':'#101820'})`;pre.hidden=ta.offsetWidth===0||document.activeElement===ta||ta.value.length>500000;if(last!==ta.value){last=ta.value;if(last.length>500000)pre.textContent='';else pre.innerHTML=highlightJsonText(last)+'\n';}pre.scrollTop=ta.scrollTop;pre.scrollLeft=ta.scrollLeft;};
  ta.parentElement.classList.add('json-highlight-host');ta.addEventListener('scroll',draw);ta.addEventListener('input',draw);ta.addEventListener('focus',draw);ta.addEventListener('blur',draw);new ResizeObserver(draw).observe(ta);
- const originalRefresh=refreshJson;refreshJson=function(){originalRefresh();draw();};
+ // Debounced callers retain the original function; notify from that refresh path.
+ ta.addEventListener('questlog-json-refreshed',draw);
  document.addEventListener('transitionend',event=>{if(/color|background/.test(event.propertyName))draw();},true);
  new MutationObserver(()=>requestAnimationFrame(draw)).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','style']});draw();
  const mods=$('#modSupportList');const view=document.createElement('select');view.setAttribute('aria-label','Mod support view');view.className='mod-view-select';view.innerHTML='<option value="compact">Compact list</option><option value="grid">Cards</option><option value="dense">Dense list</option>';
@@ -685,7 +701,7 @@ const MC_STYLES=[
 let mode='quest',quests={},chapters={},currentFile=null,rawMode=false,jsonFocused=false;
 let rightPanelMode=['json','validation'].includes(localStorage.getItem(RIGHT_PANEL_MODE_KEY))?localStorage.getItem(RIGHT_PANEL_MODE_KEY):'json';
 let questPreviewTextMode='default';
-let questPreviewDetailsOpen=false;
+let questPreviewDetailsOpen=true;
 let questPreviewAppliedPanelDismissed=false;
 let questPreviewDetailIndex=0;
 let questlogListSearchExpanded=false;
@@ -2659,8 +2675,15 @@ function renderTemplateModal(){const list=$('#templateList'),cat=$('#templateCat
 }
 const CHANGELOGS=[
   {
-    version:APP_VERSION,
-    title:`Version ${APP_VERSION}`,
+    version:APP_VERSION,title:`Version ${APP_VERSION}`,status:'Focused editing and global GUI textures',
+    sections:[
+      {title:'Improved',items:['Current-file header with direct Preview and GUI Studio actions.','Grouped quest options, wider icon/sound fields, and consistent section spacing.','Accessible Settings navigation on narrow screens.']},
+      {title:'Added',items:['Global GUI texture imports in Settings → Project with Import PNG, status and individual Reset controls.','Original-atlas rendering with shared nine-slice panels.','Source-confirmed quest details visibility controls and corrected content bounds.']}
+    ]
+  },
+  {
+    version:'4.4.0',
+    title:'Version 4.4.0',
     status:'Editor improvements and QuestLog 3.5.4 support',
     sections:[
       {title:'Added',items:['Theme-aware JSON syntax highlighting.','Sidebar multi-selection and group reordering.','Compact, card and dense Mod Support views.','AND and Origins objectives, choice/random rewards, and repeatable/global quests.','Project undo/redo keyboard shortcuts and quest flag tooltips.']},
@@ -3354,7 +3377,7 @@ function loadExportMetadata(){
   return meta;
 }
 function saveExportMetadata(meta){
-  try{localStorage.setItem(EXPORT_METADATA_KEY,JSON.stringify(Object.assign(loadExportMetadata(),meta||{})));}catch(_err){}
+  try{localStorage.setItem(EXPORT_METADATA_KEY,JSON.stringify(Object.assign(loadExportMetadata(),meta||{})));if(meta?.guiTextures)window.QUESTLOG_GUI_ATLAS?.restore(meta.guiTextures).catch(error=>showMsg(error.message,false));}catch(_err){}
 }
 function exportMetadataFromDom(){
   const data={};
@@ -3383,7 +3406,8 @@ function exportBuilderProjectState(meta){
       packName:meta.packName,
       author:meta.author,
       namespace:meta.namespace,
-      description:meta.description
+      description:meta.description,
+      guiTextures:meta.guiTextures||{}
     },
     gui_studio_draft_scopes:typeof guiStudioScopedDraftBundle==='function'?guiStudioScopedDraftBundle():null
   };
@@ -3837,7 +3861,7 @@ async function ensureGuiStudioExportTexture(key){
   if(!key||typeof GUI_STUDIO_TEXTURES==='undefined')return null;
   const cached=typeof getGuiStudioTextureImage==='function'?getGuiStudioTextureImage(key):null;
   if(cached?.complete&&cached.naturalWidth)return cached;
-  const src=GUI_STUDIO_TEXTURES[key];
+  const src=window.QUESTLOG_GUI_ATLAS?.specs[key]?window.QUESTLOG_GUI_ATLAS.url(key):GUI_STUDIO_TEXTURES[key];
   if(!src)return null;
   const img=await loadExportImage(src);
   if(typeof guiStudioTextureCache!=='undefined')guiStudioTextureCache[key]=img;
@@ -3991,6 +4015,7 @@ function resourcePackReadme(meta,edited){
 }
 async function buildResourcePackZip(meta,paths,options={}){
   const packZip=new JSZip();
+  window.QUESTLOG_GUI_ATLAS?.export(packZip);
   const edited=typeof guiStudioExportTextureJobs==='function'?guiStudioExportTextureJobs(meta):[];
   packZip.file('pack.mcmeta',stringifyJson({
     pack:{
@@ -4725,6 +4750,13 @@ async function questlogRunWorkbenchCanvasReleaseSelfTest(){
       };
       requestAnimationFrame(poll);
     });
+    // Do not measure the intermediate 2px collapsed boxes while the layout's
+    // scheduled recovery/render pass is still applying percentage dimensions.
+    await new Promise(resolve=>{
+      const started=performance.now();
+      const poll=()=>{const panels=collectPanels();if((panels.length&&panels.every(p=>p.rect.h>20))||performance.now()-started>1000)resolve();else requestAnimationFrame(poll);};
+      requestAnimationFrame(poll);
+    });
     const workbenchPanels=collectPanels();
     const workbenchOverlaps=collectOverlaps(workbenchPanels);
     const previewPanel=$('[data-workbench-panel="preview"]');
@@ -5406,17 +5438,19 @@ async function questlogRunGuiStudioCreateSmokeSelfTest(){
         return condition.includes('max-width:1100px')&&text.includes('gui-studio-create-screen')&&(text.includes('flex-direction:column')||text.includes('grid-template-columns: 1fr'));
       });
     });
-    const childRects=createChildren.map(el=>el.getBoundingClientRect()).filter(rect=>rect.width>0&&rect.height>0);
+    // Options/palette can live inside the canvas panel. Check disjoint sibling
+    // regions for collisions, not a panel against its intentionally nested bar.
+    const childRects=createChildren.filter(el=>!createChildren.some(parent=>parent!==el&&parent.contains(el))).map(el=>el.getBoundingClientRect()).filter(rect=>rect.width>0&&rect.height>0);
     const childOverlapFree=childRects.every((a,index)=>childRects.slice(index+1).every(b=>a.right<=b.left+1||b.right<=a.left+1||a.bottom<=b.top+1||b.bottom<=a.top+1));
     const shellRect=shell?.getBoundingClientRect();
-    const shellContainsChildren=!!shellRect&&childRects.every(rect=>rect.left>=shellRect.left-2&&rect.right<=shellRect.right+2);
+    const shellContainsChildren=!!shellRect&&createChildren.map(el=>el.getBoundingClientRect()).every(rect=>rect.left>=shellRect.left-2&&rect.right<=shellRect.right+2);
     const currentNarrowApplied=!currentNarrow||(getComputedStyle(createScreen).display==='flex'&&getComputedStyle(createScreen).flexDirection==='column');
     checks.narrowStackingOk=responsiveCreateRule&&currentNarrowApplied&&(!currentNarrow||childOverlapFree)&&shellContainsChildren;
     result={
       ok:Object.values(checks).every(Boolean),
       checks,
       launchDetails,
-      narrowStackingDetails:{responsiveCreateRule,currentNarrow,currentNarrowApplied,childOverlapFree,shellContainsChildren},
+      narrowStackingDetails:{responsiveCreateRule,currentNarrow,currentNarrowApplied,childOverlapFree,shellContainsChildren,regions:createChildren.map(el=>({className:el.className,rect:el.getBoundingClientRect().toJSON()}))},
       layerCount:guiStudioPieceData(piece).layers.length,
       sourceButtonCount:sourceButtons.length,
       createChildCount:createChildren.length,
@@ -7066,7 +7100,7 @@ async function exportProjectZip(options={}){
 
 
 // ── Live JSON ─────────────────────────────────────────────────────
-function refreshJson(){const el=$('#liveJson');if(!currentFile||!getCD()||!el)return;if(jsonFocused)return;try{const d=getCD();el.value=mode==='quest'?stringifyJson(buildQOut(d)):stringifyJson(stripChapterBuilderKeys({...d}));}catch(e){}}
+function refreshJson(){const el=$('#liveJson');if(!currentFile||!getCD()||!el)return;if(jsonFocused)return;try{const d=getCD();el.value=mode==='quest'?stringifyJson(buildQOut(d)):stringifyJson(stripChapterBuilderKeys({...d}));el.dispatchEvent(new Event('questlog-json-refreshed'));}catch(e){}}
 const dRefresh=debounce(refreshJson,180);
 
 function rightPanelLabel(m){return m==='json'?(rawMode?'JSON editor':'Live JSON'):'Checks';}
@@ -7585,7 +7619,8 @@ function renderQuestPreviewDetailPanel(q,{open=questPreviewDetailsOpen,kind=null
   const selected=questPreviewActiveEntry(q,kind);
   const title=questPreviewInfoTitle(kind);
   const skin=guiStudioAppliedPreviewForQuest();
-  const panelStyle=skin?.pieces?.right?` style="background-image:url('${esc(skin.pieces.right)}');background-size:100% 100%;"`:'';
+  const rightTexture=skin?.pieces?.right||window.QUESTLOG_GUI_ATLAS?.panel(Number(q.right_panel_width)||170,Number(q.panel_height)||166);
+  const panelStyle=rightTexture?` style="background-image:url('${esc(rightTexture)}');background-size:100% 100%;"`:'';
   return`<aside class="ql-preview-details ${open?'open':''}" aria-label="Quest preview details"${panelStyle}>
     <div class="ql-preview-side-title">${esc(title)}</div>
     <div class="ql-preview-rule small"></div>
@@ -7749,7 +7784,7 @@ function renderQuestPreviewSurface(body,{inline=false,rerender=null}={}){
   const leftWidth=Number(q.left_panel_width)||275;
   const rightWidth=Number(q.right_panel_width)||170;
   const panelHeight=Number(q.panel_height)||166;
-  const contentHeight=Math.max(40,panelHeight-68);
+  const contentHeight=Math.max(1,panelHeight-67);
   const leftOffsetX=Number(q.left_panel_x_offset)||0;
   const leftOffsetY=Number(q.left_panel_y_offset)||0;
   const rightOffsetX=Number(q.right_panel_x_offset)||0;
@@ -7759,7 +7794,7 @@ function renderQuestPreviewSurface(body,{inline=false,rerender=null}={}){
   const hasRealDetails=((q.objectives||[]).length||(q.rewards||[]).length)>0;
   const hasDetails=hasRealDetails||!!appliedDetailKind;
   const appliedPreviewWantsDetails=!!appliedDetailKind&&!questPreviewAppliedPanelDismissed;
-  const showDetails=hasDetails&&!detailsDisabled&&(questPreviewDetailsOpen||appliedPreviewWantsDetails);
+  const showDetails=hasDetails&&((questPreviewStateMode()==='completed'&&(q.rewards||[]).length>0)||q.details_open_by_default||(!detailsDisabled&&(questPreviewDetailsOpen||appliedPreviewWantsDetails)));
   const previewLayoutState=questPreviewStateMode()==='completed'?'rewards':(showDetails?(appliedDetailKind||'objectives'):'quest');
   const primaryText=previewLayoutState==='rewards'?(q.collect_button_text||'Collect Rewards'):questPreviewPrimaryStateText(q);
   const showPrimary=previewLayoutState==='rewards';
@@ -7772,7 +7807,8 @@ function renderQuestPreviewSurface(body,{inline=false,rerender=null}={}){
   const canComplete=showDetails&&questPreviewStateMode()!=='completed'&&!appliedDetailKind;
   const canScroll=questPreviewCanScrollText(desc,leftWidth,contentHeight);
   const skin=guiStudioAppliedPreviewForQuest();
-  const paperStyle=skin?.pieces?.main?` style="background-image:url('${esc(skin.pieces.main)}');background-size:100% 100%;"`:'';
+  const mainTexture=skin?.pieces?.main||window.QUESTLOG_GUI_ATLAS?.panel(leftWidth,panelHeight);
+  const paperStyle=mainTexture?` style="background-image:url('${esc(mainTexture)}');background-size:100% 100%;"`:'';
   const buttonStyle=guiStudioQuestPreviewButtonStyle(skin?.pieces?.button);
   const buttonHoverStyle=guiStudioQuestPreviewButtonStyle(skin?.pieces?.buttonHover||skin?.pieces?.button);
   const inlineLayoutVars=inline?questPreviewInlineLayoutVars({leftWidth,rightWidth,panelHeight,leftOffsetX,leftOffsetY,rightOffsetX,rightOffsetY,showDetails}):'';
@@ -7794,7 +7830,7 @@ function renderQuestPreviewSurface(body,{inline=false,rerender=null}={}){
         </div>
         <div class="ql-preview-actions">
           ${canComplete?`<button type="button" id="questPreviewCompleteBtn" class="${completeUnits===88?'long':''}" style="left:${completeLeft}px;${buttonStyle}">${completeText}</button>`:''}
-          ${!detailsDisabled&&hasDetails?`<button type="button" id="questPreviewDetailsBtn" style="left:${detailsLeft}px;${buttonHoverStyle}">Details</button>`:''}
+          ${!detailsDisabled&&!q.details_open_by_default&&hasDetails?`<button type="button" id="questPreviewDetailsBtn" style="left:${detailsLeft}px;${buttonHoverStyle}">Details</button>`:''}
           ${showPrimary?`<button type="button" id="questPreviewBackBtn" class="ql-preview-primary-preview ${primaryUnits===88?'long':''}" style="left:${primaryLeft}px;${buttonStyle}">${esc(primaryText)}</button>`:''}
         </div>
       </div>
@@ -7852,7 +7888,11 @@ function openQuestPreviewModal(fromList=false,chapterId=null){
   questPreviewOpenedFromList=!!fromList;
   if(chapterId)questlogListActiveChapter=chapterId;
   questPreviewTextMode=currentFile&&questPreviewCompletedFiles.has(currentFile)?'completed':currentFile&&questPreviewFailedFiles.has(currentFile)?'failed':'default';
-  questPreviewDetailsOpen=!!q?.details_open_by_default&&!q?.disable_details_button&&(((q?.objectives||[]).length||(q?.rewards||[]).length)>0);
+  const hasDetails=!!((q?.objectives||[]).length||(q?.rewards||[]).length);
+  if(!hasDetails)questPreviewDetailsOpen=false;
+  else if(questPreviewTextMode==='completed'&&(q.rewards||[]).length)questPreviewDetailsOpen=true;
+  else if(q.disable_details_button)questPreviewDetailsOpen=!!q.details_open_by_default;
+  else if(q.details_open_by_default)questPreviewDetailsOpen=true;
   questPreviewDetailIndex=0;
   renderQuestPreviewModal();
   $('#questPreviewModal')?.classList.add('open');
@@ -7863,7 +7903,7 @@ function resetQuestPreviewEphemeralState(){
     questPreviewFailedFiles.delete(currentFile);
   }
   questPreviewTextMode='default';
-  questPreviewDetailsOpen=false;
+  // QuestDetails retains the last toggled details state across openings.
   questPreviewAppliedPanelDismissed=false;
   questPreviewDetailIndex=0;
 }
@@ -8400,14 +8440,14 @@ const GUI_STUDIO_OTHER_PIECES=GUI_STUDIO_QUEST_PIECES.filter(piece=>!GUI_STUDIO_
 const GUI_STUDIO_QUESTLIST_PIECES=Object.keys(GUI_STUDIO_PIECES).filter(piece=>GUI_STUDIO_PIECES[piece].scope==='chapterList'||GUI_STUDIO_PIECES[piece].scope==='all');
 const GUI_STUDIO_QUESTLIST_OTHER_PIECES=GUI_STUDIO_QUESTLIST_PIECES.filter(piece=>!GUI_STUDIO_QUESTLIST_PRIORITY_PIECES.includes(piece));
 const GUI_STUDIO_GENERATED_ASSETS={
-  expand:'questlog-assets/gui/generated/expand_button.png',
-  condense:'questlog-assets/gui/generated/condense_button.png',
-  visible:'questlog-assets/gui/generated/visible_button.png',
-  hidden:'questlog-assets/gui/generated/hidden_button.png',
-  mainTab:'questlog-assets/gui/generated/tab_main.png',
-  mainTabActive:'questlog-assets/gui/generated/tab_main_active.png',
-  secondaryTab:'questlog-assets/gui/generated/tab_secondary.png',
-  secondaryTabActive:'questlog-assets/gui/generated/tab_secondary_active.png'
+  get expand(){return getComputedStyle(document.documentElement).getPropertyValue('--ql-atlas-expand_button').trim().slice(5,-2);},
+  get condense(){return getComputedStyle(document.documentElement).getPropertyValue('--ql-atlas-condense_button').trim().slice(5,-2);},
+  get visible(){return getComputedStyle(document.documentElement).getPropertyValue('--ql-atlas-visible_button').trim().slice(5,-2);},
+  get hidden(){return getComputedStyle(document.documentElement).getPropertyValue('--ql-atlas-hidden_button').trim().slice(5,-2);},
+  get mainTab(){return getComputedStyle(document.documentElement).getPropertyValue('--ql-atlas-tab_main').trim().slice(5,-2);},
+  get mainTabActive(){return getComputedStyle(document.documentElement).getPropertyValue('--ql-atlas-tab_main_active').trim().slice(5,-2);},
+  get secondaryTab(){return getComputedStyle(document.documentElement).getPropertyValue('--ql-atlas-tab_secondary').trim().slice(5,-2);},
+  get secondaryTabActive(){return getComputedStyle(document.documentElement).getPropertyValue('--ql-atlas-tab_secondary_active').trim().slice(5,-2);}
 };
 function guiStudioModalTarget(){
   return $('#guiStudioModal')?.dataset.target==='quest-list'?'quest-list':'quest-menu';
@@ -10416,7 +10456,7 @@ function guiStudioTargetPixels(){
 }
 const guiStudioTextureCache={};
 function getGuiStudioTextureImage(key){
-  const src=GUI_STUDIO_TEXTURES[key];
+  const src=window.QUESTLOG_GUI_ATLAS?.specs[key]?window.QUESTLOG_GUI_ATLAS.url(key):GUI_STUDIO_TEXTURES[key];
   if(!src||typeof Image==='undefined')return null;
   if(guiStudioTextureCache[key])return guiStudioTextureCache[key];
   const img=new Image();
@@ -10426,6 +10466,7 @@ function getGuiStudioTextureImage(key){
   return img;
 }
 function drawGuiStudioNineSlice(ctx,img,src,bounds){
+  if(window.QUESTLOG_GUI_ATLAS&&src.cw===16&&src.ch===16){ctx.save();ctx.translate(bounds.x,bounds.y);window.QUESTLOG_GUI_ATLAS.nineSlice(ctx,img,src,bounds.w,bounds.h);ctx.restore();return;}
   const cw=Math.min(src.cw||0,Math.floor(src.w/2),Math.floor(bounds.w/2));
   const ch=Math.min(src.ch||0,Math.floor(src.h/2),Math.floor(bounds.h/2));
   const midSrcW=src.w-cw*2,midSrcH=src.h-ch*2;
@@ -14553,11 +14594,11 @@ function restoreFormTabsToAnchor(){
   if(row&&anchor?.parentElement&&row.previousElementSibling!==anchor)anchor.parentElement.insertBefore(row,anchor.nextSibling);
 }
 function placeFormTabs(activeKey){
-  const row=$('.form-tabs-row'),slot=$('#displayTabSlot'),anchor=$('#formTabsAnchor');
+  const row=$('.form-tabs-row'),slot=$('#displayTabSlot,#chapterTabSlot'),anchor=$('#formTabsAnchor');
   if(!row)return;
-  if(mode==='quest'&&currentFile&&slot&&!slot.contains(row))slot.appendChild(row);
+  if(currentFile&&slot&&!slot.contains(row))slot.appendChild(row);
   else if(!slot&&anchor&&anchor.parentElement&&row.previousElementSibling!==anchor)anchor.parentElement.insertBefore(row,anchor.nextSibling);
-  else if((mode!=='quest'||!currentFile)&&anchor&&anchor.parentElement&&row.previousElementSibling!==anchor)anchor.parentElement.insertBefore(row,anchor.nextSibling);
+  else if(!currentFile&&anchor&&anchor.parentElement&&row.previousElementSibling!==anchor)anchor.parentElement.insertBefore(row,anchor.nextSibling);
 }
 function movePK(k,dir){const o=normOrder(panelOrder);const i=o.indexOf(k);const n=i+dir;if(i<0||n<0||n>=o.length)return;const t=o[i];o[i]=o[n];o[n]=t;panelOrder=o;saveOrder();syncQ();renderMain();}
 
@@ -14575,13 +14616,54 @@ function renderMain(){
   }
   restoreFormTabsToAnchor();
   $('#panelForm').innerHTML='';
-  if(mode==='chapter'){$('#panelForm').innerHTML=renderChForm(getCD());$('#formTabs').innerHTML='';placeFormTabs();bindChForm();}
+  if(mode==='chapter'){$('#panelForm').innerHTML=renderChForm(getCD());$('#formTabs').innerHTML='<span class="chapter-tab-label">Chapter settings</span>';placeFormTabs();bindChForm();}
   else{$('#panelForm').innerHTML=renderQForm(getCD());buildTabs();bindQForm();}
+  refineEditorPresentation();
   if(!jsonFocused)refreshJson();
   refreshQuestPreview();
   renderInlineChapterListPreview();
   updateRightPanelMode();
 dValidate();
+}
+
+// Presentation only: retain the original inputs, IDs and event bindings.
+function refineEditorPresentation(){
+ const panel=$('#panelForm');if(!panel||!currentFile)return;
+ const context=document.createElement('header');context.className='editor-file-context';
+ const identity=document.createElement('div');identity.className='editor-file-context-name';
+ const kind=document.createElement('span');kind.className='editor-file-kind';kind.textContent=mode==='quest'?'Quest':'Chapter';
+ const file=document.createElement('strong');file.textContent=currentFile;file.title=currentFile;identity.append(kind,file);
+ const actions=document.createElement('div');actions.className='editor-file-actions';
+ const preview=document.createElement('button');preview.type='button';preview.className='btn';preview.textContent='Preview';preview.onclick=()=>mode==='quest'?openQuestPreviewModal():openQuestlogListPreviewModal();
+ const gui=document.createElement('button');gui.type='button';gui.className='btn';gui.textContent='GUI Studio';gui.onclick=()=>openGuiStudio(mode==='quest'?'quest-menu':'quest-list');
+ actions.append(preview,gui);context.append(identity,actions);panel.prepend(context);
+ const options=panel.querySelector('.display-toggles');
+ if(options){
+  const groups=[['Visibility',['qf_include_in_main','qf_hidden','qf_hide_when_completed','qf_translatable']],['Completion',['qf_repeatable','qf_global']],['Notifications',['qf_toast_on_unlock','qf_toast_on_complete','qf_show_popup_on_unlock']],['Details panel',['qf_details_open','qf_details_disabled']]];
+  const labels=new Map([...options.querySelectorAll('label')].map(label=>[label.querySelector('input')?.id,label]));options.replaceChildren();
+  options.classList.add('compact-options');
+  groups.forEach(([,ids])=>ids.forEach(id=>{if(labels.has(id))options.append(labels.get(id));}));
+  const display=panel.querySelector('[data-panel-key="display"] .sec-body');if(display)display.insertBefore(options,display.querySelector('#displayQuestPreviewMount'));
+ }
+ // Keep Display ordered: options, icon/sounds, description, then preview.
+ const displayBody=panel.querySelector('[data-panel-key="display"] .sec-body');
+ if(displayBody){
+  const settings=displayBody.querySelector('.display-toggles');
+  const metadata=displayBody.querySelector('.display-meta-grid');
+  const description=displayBody.querySelector('.description-field');
+  const previewMount=displayBody.querySelector('#displayQuestPreviewMount');
+  for(const node of [settings,metadata,description,previewMount])if(node)displayBody.append(node);
+ }
+ const chapterBody=panel.querySelector('.chapter-editor-body');
+ if(chapterBody){
+  const options=chapterBody.querySelector('.chapter-options');
+  const hint=chapterBody.querySelector('.chapter-options-hint');
+  const icon=chapterBody.querySelector('.chapter-icon-panel');
+  const preview=chapterBody.querySelector('.chapter-list-preview-card');
+  for(const node of [options,hint,icon,preview])if(node)chapterBody.append(node);
+ }
+ // Give existing standalone form labels a real programmatic association.
+ panel.querySelectorAll('.field').forEach((field,index)=>{const label=field.querySelector(':scope > label');const input=field.querySelector(':scope > input,:scope > select,:scope > textarea');if(label&&input&&!label.contains(input)&&!label.htmlFor){if(!input.id)input.id='ql-field-'+index;label.htmlFor=input.id;}});
 }
 
 // ── Renderable ────────────────────────────────────────────────────
@@ -14798,7 +14880,7 @@ function renderQForm(q){
   <div class="display-icon-preview default-texture" data-tip="Quest icon preview. Uses a default book texture until an icon is configured." aria-label="Quest icon preview"></div>
   <div>
     <div class="display-identity-fields"><div class="field" data-tip="The player-facing quest title shown in Questlog."><label>Title</label><input type="text" id="qf_title" value="${esc(q.title||'')}" /></div><div class="field" data-tip="Questlog uses this number to order quests inside a chapter."><label>Order</label><input type="number" id="qf_sort_order" value="${d('sort_order',0)}" /></div><div class="field" data-tip="The chapter this quest belongs to, usually namespace:chapter_file_name."><label>Chapter ID</label><input type="text" id="qf_chapter" value="${esc(ch)}" placeholder="main" list="qfChapterIds" autocomplete="off" spellcheck="false" /><datalist id="qfChapterIds">${Object.keys(chapters).map(f=>`<option value="${esc(chapterIdFor(f))}"></option>`).join('')}</datalist></div></div>
-    <div class="display-toggles" aria-label="Quest display options"><div class="display-toggle-group"><span class="display-toggle-group-label">File</span><label class="toggle-label" data-tip="Mark the quest text as translatable for language files."><input type="checkbox" id="qf_translatable" ${d('translatable',false)?'checked':''} /> Translatable</label><label class="toggle-label" data-tip="Show this quest in the main Questlog view when appropriate."><input type="checkbox" id="qf_include_in_main" ${incMain?'checked':''} /> Include in main</label><label class="toggle-label" data-tip="Hide even after requirements are met. Usually requirements are enough for normal gating."><input type="checkbox" id="qf_hidden" ${d('hidden',false)?'checked':''} /> Hidden</label><label class="toggle-label" data-tip="Hide this quest from the quest list once the player has completed it."><input type="checkbox" id="qf_hide_when_completed" ${d('hide_when_completed',false)?'checked':''} /> Hide when completed</label></div><div class="display-toggle-group"><span class="display-toggle-group-label">Notify</span><label class="toggle-label" data-tip="Allow this quest to be completed again after it resets (QuestLog 3.5.4)."><input type="checkbox" id="qf_repeatable" ${d('repeatable',false)?'checked':''} /> Repeatable</label><label class="toggle-label" data-tip="Share quest progress globally across players rather than tracking it separately for each player."><input type="checkbox" id="qf_global" ${d('global',false)?'checked':''} /> Global</label><label class="toggle-label" data-tip="Show a toast when this quest becomes available."><input type="checkbox" id="qf_toast_on_unlock" ${d('toast_on_unlock',true)?'checked':''} /> Unlock toast</label><label class="toggle-label" data-tip="Show a toast when this quest is completed."><input type="checkbox" id="qf_toast_on_complete" ${d('toast_on_complete',true)?'checked':''} /> Complete toast</label><label class="toggle-label" data-tip="Show a larger popup when the quest unlocks."><input type="checkbox" id="qf_show_popup_on_unlock" ${d('show_popup_on_unlock',false)?'checked':''} /> Popup</label></div></div>
+    <div class="display-toggles" aria-label="Quest display options"><div class="display-toggle-group"><span class="display-toggle-group-label">File</span><label class="toggle-label" data-tip="Mark the quest text as translatable for language files."><input type="checkbox" id="qf_translatable" ${d('translatable',false)?'checked':''} /> Translatable</label><label class="toggle-label" data-tip="Show this quest in the main Questlog view when appropriate."><input type="checkbox" id="qf_include_in_main" ${incMain?'checked':''} /> Include in main</label><label class="toggle-label" data-tip="Hide even after requirements are met. Usually requirements are enough for normal gating."><input type="checkbox" id="qf_hidden" ${d('hidden',false)?'checked':''} /> Hidden</label><label class="toggle-label" data-tip="Hide this quest from the quest list once the player has completed it."><input type="checkbox" id="qf_hide_when_completed" ${d('hide_when_completed',false)?'checked':''} /> Hide when completed</label></div><div class="display-toggle-group"><span class="display-toggle-group-label">Notify</span><label class="toggle-label" data-tip="Open the details panel automatically; the Details toggle is hidden."><input type="checkbox" id="qf_details_open" ${d('details_open_by_default',false)?'checked':''} /> Details open by default</label><label class="toggle-label" data-tip="Hide the Details button without forcing the panel closed."><input type="checkbox" id="qf_details_disabled" ${d('disable_details_button',false)?'checked':''} /> Hide details button</label><label class="toggle-label" data-tip="Allow this quest to be completed again after it resets (QuestLog 3.5.4)."><input type="checkbox" id="qf_repeatable" ${d('repeatable',false)?'checked':''} /> Repeatable</label><label class="toggle-label" data-tip="Share quest progress globally across players rather than tracking it separately for each player."><input type="checkbox" id="qf_global" ${d('global',false)?'checked':''} /> Global</label><label class="toggle-label" data-tip="Show a toast when this quest becomes available."><input type="checkbox" id="qf_toast_on_unlock" ${d('toast_on_unlock',true)?'checked':''} /> Unlock toast</label><label class="toggle-label" data-tip="Show a toast when this quest is completed."><input type="checkbox" id="qf_toast_on_complete" ${d('toast_on_complete',true)?'checked':''} /> Complete toast</label><label class="toggle-label" data-tip="Show a larger popup when the quest unlocks."><input type="checkbox" id="qf_show_popup_on_unlock" ${d('show_popup_on_unlock',false)?'checked':''} /> Popup</label></div></div>
     <div class="hint display-hidden-hint">Hidden suppresses even after requirements are met. Requirements auto-gate - no need for hidden.</div>
   </div>
 </div>
@@ -14895,7 +14977,7 @@ function renderQForm(q){
 function renderChForm(c){
   const d=(k,v)=>(c[k]!==undefined?c[k]:v);
   const showListPreview=!['workbench','canvas'].includes(document.body?.dataset.layout);
-  return`<div class="section chapter-editor-section"><div class="sec-body chapter-editor-body"><div class="field" data-tip="The ID quests use to join this chapter. It is the same as the file name, so main.json is main. Rename it here and quests pointing at the old ID are updated for you."><label>Chapter ID</label><input type="text" id="cf_id" value="${esc(chapterIdFor(currentFile))}" placeholder="chapter_name" spellcheck="false" autocomplete="off" /></div><div class="g2"><div class="field" data-tip="The player-facing chapter name shown in Questlog."><label>Display name</label><input type="text" id="cf_name" value="${esc(c.name||'')}" /></div><div class="field" data-tip="Questlog uses this number to order chapters."><label>Order</label><input type="number" id="cf_order" value="${d('order',0)}" /></div></div><div style="display:flex;flex-wrap:wrap;gap:12px;margin:10px 0;"><label class="toggle-label" data-tip="Mark chapter text as translatable for language files."><input type="checkbox" id="cf_translatable" ${d('translatable',false)?'checked':''} /> Translatable</label><label class="toggle-label" data-tip="Use this as the default chapter when Questlog opens."><input type="checkbox" id="cf_default_chapter" ${d('default_chapter',false)?'checked':''} /> Default chapter</label><label class="toggle-label" data-tip="Hide the chapter until Questlog conditions reveal it."><input type="checkbox" id="cf_hidden" ${d('hidden',false)?'checked':''} /> Hidden</label></div><div class="hint" style="margin-bottom:10px;">Hidden chapters still show quests if requirements are met.</div><div class="g2">${renderRend('chicon',c.icon)}</div>${showListPreview?`<div class="chapter-list-preview-card"><div class="chapter-list-preview-head"><span>Questlog list preview</span><div class="chapter-list-preview-tools"><small>Uses this chapter and its linked quests.</small></div></div><div class="inline-chapter-list-preview" id="chapterQuestListPreviewMount" aria-label="Live Questlog chapter list preview"></div></div>`:''}</div></div>`;
+  return`<div class="section chapter-editor-section"><div class="sec-body chapter-editor-body"><div class="chapter-identity-panel"><div class="field" data-tip="The ID quests use to join this chapter. It is the same as the file name, so main.json is main. Rename it here and quests pointing at the old ID are updated for you."><label>Chapter ID</label><input type="text" id="cf_id" value="${esc(chapterIdFor(currentFile))}" placeholder="chapter_name" spellcheck="false" autocomplete="off" /></div><div class="g2"><div class="field" data-tip="The player-facing chapter name shown in Questlog."><label>Display name</label><input type="text" id="cf_name" value="${esc(c.name||'')}" /></div><div class="field" data-tip="Questlog uses this number to order chapters."><label>Order</label><input type="number" id="cf_order" value="${d('order',0)}" /></div></div></div><div class="display-tabs-wrap"><div class="display-tab-slot" id="chapterTabSlot"></div></div><div class="chapter-options display-toggle-group" role="group" aria-label="Chapter options"><span class="display-toggle-group-label">Chapter options</span><label class="toggle-label" data-tip="Mark chapter text as translatable for language files."><input type="checkbox" id="cf_translatable" ${d('translatable',false)?'checked':''} /> Translatable</label><label class="toggle-label" data-tip="Use this as the default chapter when Questlog opens."><input type="checkbox" id="cf_default_chapter" ${d('default_chapter',false)?'checked':''} /> Default chapter</label><label class="toggle-label" data-tip="Hide the chapter until Questlog conditions reveal it."><input type="checkbox" id="cf_hidden" ${d('hidden',false)?'checked':''} /> Hidden</label></div><div class="hint chapter-options-hint">Hidden chapters still show quests if requirements are met.</div><div class="chapter-icon-panel"><span class="chapter-section-label">Chapter icon</span><div class="g2">${renderRend('chicon',c.icon)}</div></div>${showListPreview?`<div class="chapter-list-preview-card"><div class="chapter-list-preview-head"><span>Questlog list preview</span><div class="chapter-list-preview-tools"><small>Uses this chapter and its linked quests.</small></div></div><div class="inline-chapter-list-preview" id="chapterQuestListPreviewMount" aria-label="Live Questlog chapter list preview"></div></div>`:''}</div></div>`;
 }
 
 // ── Objectives ────────────────────────────────────────────────────
@@ -15320,6 +15402,31 @@ function bindColorPickers(){
 
 function toggR(p){const k=document.querySelector(`[data-r="${p}-kind"]`);if(!k)return;const s=()=>{const v=k.value;document.querySelector(`[data-r="${p}-item"]`).classList.toggle('hidden',v!=='item');document.querySelector(`[data-r="${p}-tex"]`).classList.toggle('hidden',v!=='texture');document.querySelector(`[data-r="${p}-str"]`).classList.toggle('hidden',v!=='stringitem');};k.onchange=s;s();}
 
+
+function mountGuiAtlasControls(){
+ const projectSettings=$('#preferencesProject');if(!projectSettings||$('#guiAtlasImports'))return;
+ const host=document.createElement('section');host.id='guiAtlasImports';host.innerHTML='<h3>Global GUI textures</h3><p>Import once for all quests and the quest list. Use complete PNG textures with the dimensions shown below. Existing GUI Studio edits take precedence.</p>';
+ const grid=document.createElement('div');grid.className='gui-atlas-grid';host.append(grid);
+ const names={questPage:'Quest details panels',peripherals:'Buttons, rules and scrollbars',searchTabs:'Search controls and chapter tabs',questlog:'Quest list background'};
+ for(const[key,[file,w,h]]of Object.entries(window.QUESTLOG_GUI_ATLAS?.specs||{})){
+ const row=document.createElement('div');row.className='gui-atlas-card';const label=document.createElement('strong');label.textContent=names[key]||file;
+ const dimensions=document.createElement('small');dimensions.textContent=file+' · '+w+' × '+h+' px';
+ const status=document.createElement('span');status.className='gui-atlas-status';status.setAttribute('role','status');
+ const input=document.createElement('input');input.type='file';input.accept='image/png';input.hidden=true;input.setAttribute('aria-label','Choose '+file);
+ const importButton=document.createElement('button');importButton.type='button';importButton.className='btn';importButton.textContent='Import PNG';importButton.setAttribute('aria-label','Import '+file);importButton.onclick=()=>input.click();
+ const reset=document.createElement('button');reset.type='button';reset.className='btn';reset.textContent='Reset';reset.setAttribute('aria-label','Reset '+file);
+ const update=()=>{const custom=window.QUESTLOG_GUI_ATLAS.url(key).startsWith('data:');status.textContent=custom?'Custom texture applied':'Using default texture';reset.disabled=!custom;};
+ input.onchange=async()=>{if(!input.files[0])return;importButton.disabled=true;try{await window.QUESTLOG_GUI_ATLAS.importPng(key,input.files[0]);showMsg('GUI texture imported for all quests.',true);}catch(error){status.textContent=error.message;showMsg(error.message,false);}finally{input.value='';importButton.disabled=false;}};
+ reset.onclick=()=>window.QUESTLOG_GUI_ATLAS.reset(key).catch(error=>showMsg(error.message,false));
+ window.addEventListener('questlog-gui-atlas-changed',update);update();
+ const actions=document.createElement('div');actions.className='gui-atlas-actions';actions.append(importButton,reset);row.append(label,dimensions,status,actions,input);grid.append(row);
+ }projectSettings.appendChild(host);
+}
+window.addEventListener('questlog-gui-atlas-changed',()=>{
+ for(const key of Object.keys(guiStudioTextureCache))delete guiStudioTextureCache[key];
+ invalidateGuiStudioAllPreviews();refreshQuestPreview();if(guiStudioModalOpen())renderGuiStudioDraft();scheduleAutosave();
+});
+
 function bindQForm(){
   const q=getCD();
   applyRequirementSync(q);
@@ -15404,6 +15511,7 @@ function syncQ(opts){
   if(readList('reqList'))q.requirements=readOL($('#reqList'));if(readList('objList'))q.objectives=readOL($('#objList'));if(readList('failList')){const f=readOL($('#failList'));if(f.length)q.failures=f;else delete q.failures;}applyRequirementSync(q);
   if(readList('rewList'))q.rewards=[...$('#rewList').querySelectorAll('.rew-card')].map(card=>{const t=card.querySelector('.rew-type').value;const previous=q.rewards?.[+card.dataset.ri];const r=previous?.type===t?{...previous,type:t}:{type:t};['name','translatable','icon','claim_sound','auto_claim','level','levels'].forEach(key=>delete r[key]);const n=card.querySelector('.rw-name')?.value?.trim();if(n)r.name=n;if(card.querySelector('.rw-trans')?.checked)r.translatable=true;const ic=card.querySelector('.rw-icon')?.value?.trim();if(ic){try{r.icon=JSON.parse(ic);}catch{r.icon=ic;}}const snd=card.querySelector('.rw-sound')?.value?.trim();if(snd)r.claim_sound=snd;if(card.querySelector('.rw-autoclaim')?.checked)r.auto_claim=true;if(t==='questlog:item'){r.item=itemIdInputValue(card.querySelector('.rw-item'),'minecraft:stone');r.count=parseInt(card.querySelector('.rw-count')?.value,10)||1;}else if(t==='questlog:command'){r.command=card.querySelector('.rw-cmd')?.value?.trim()||'/say hi';r.permission_level=parseInt(card.querySelector('.rw-plvl')?.value,10)||2;}else if(t==='questlog:experience'){r.experience=parseInt(card.querySelector('.rw-xp')?.value,10)||0;if(card.querySelector('.rw-levels')?.checked)r.levels=true;}else if(t==='questlog:choice'||t==='questlog:random'){const input=card.querySelector('.rw-container');let values;try{values=JSON.parse(input?.value||'[]');if(!Array.isArray(values))throw new Error('Expected a JSON array');input?.setCustomValidity('');}catch(error){input?.setCustomValidity(error.message);showMsg('Nested reward JSON: '+error.message,false);return q.rewards[+card.dataset.ri]||{type:t};}r[t==='questlog:choice'?'choices':'entries']=values;r[t==='questlog:choice'?'pick_count':'roll_count']=Math.max(1,parseInt(card.querySelector('.rw-rolls')?.value,10)||1);if(t==='questlog:random')r.empty_weight=Math.max(0,Number(card.querySelector('.rw-empty')?.value)||0);}else if(t==='questlog:loot_table'){r.loot_table=card.querySelector('.rw-loot')?.value?.trim()||'minecraft:chests/spawn_bonus_chest';}return r;});
   const cs=$('#qf_completed_sound')?.value?.trim();if(cs)q.completed_sound=cs;else delete q.completed_sound;const ts=$('#qf_triggered_sound')?.value?.trim();if(ts)q.triggered_sound=ts;else delete q.triggered_sound;
+  q.details_open_by_default=$('#qf_details_open')?.checked||false;q.disable_details_button=$('#qf_details_disabled')?.checked||false;
   q.repeatable=$('#qf_repeatable')?.checked||false;q.global=$('#qf_global')?.checked||false;
   q.toast_on_unlock=$('#qf_toast_on_unlock')?.checked;q.toast_on_complete=$('#qf_toast_on_complete')?.checked;q.show_popup_on_unlock=$('#qf_show_popup_on_unlock')?.checked;
   sOS(q,'background_texture',$('#qf_background_texture')?.value||'');sOS(q,'right_panel_texture',$('#qf_right_panel_texture')?.value||'');sOS(q,'peripheral_texture',$('#qf_peripheral_texture')?.value||'');sOS(q,'overlay',$('#qf_overlay')?.value||'');
@@ -19647,6 +19755,7 @@ initReactiveAmbientLight();
 initPaneNav();
 initImportExportUi();
 initEditorImprovements();
+mountGuiAtlasControls();
 if(new URLSearchParams(location.search).has('editorImprovementsSelfTest'))window.addEventListener('questlog-assets-loaded',()=>setTimeout(runEditorImprovementsSelfTest,0),{once:true});
 saveAutosaveNow('init');
 updateHistoryButtons();

@@ -69,6 +69,7 @@
     });
     var after = Array.isArray(manifest.afterPacks) ? manifest.afterPacks : [];
     for (var j = 0; j < after.length; j++) await loadScript(after[j]);
+    if(window.QUESTLOG_GUI_ATLAS_READY)await window.QUESTLOG_GUI_ATLAS_READY;
     await loadScript(manifest.app);
     document.documentElement.classList.remove('questlog-booting');
     window.QUESTLOG_ASSETS_LOADED = true;

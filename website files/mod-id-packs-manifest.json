@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "websiteVersion": "4.4.0",
+  "websiteVersion": "4.5.0",
   "registry": {
     "src": "mod-id-packs.js",
     "cacheRevision": "d5435c0eccefbaa2"
@@ -25,74 +25,97 @@
     {
       "src": "mod-id-packs/ancient_remnants.js",
       "textures": {
-        "namespace": "ancient_remnants"
-      }
+        "namespace": "ancient_remnants",
+        "cacheRevision": "674bc87efda9f31a"
+      },
+      "cacheRevision": "0ac8aefd922b694d"
     },
     {
       "src": "mod-id-packs/bakery.js",
       "textures": {
-        "namespace": "bakery"
-      }
+        "namespace": "bakery",
+        "cacheRevision": "0b784cfe24998fd1"
+      },
+      "cacheRevision": "9a618474de7794af"
     },
     {
       "src": "mod-id-packs/biomesoplenty.js",
       "textures": {
-        "namespace": "biomesoplenty"
-      }
+        "namespace": "biomesoplenty",
+        "cacheRevision": "f99d2145cb9b5a0a"
+      },
+      "cacheRevision": "2e8418d5e7ea8d03"
     },
     {
       "src": "mod-id-packs/envelope.js",
       "textures": {
-        "namespace": "envelope"
-      }
+        "namespace": "envelope",
+        "cacheRevision": "3715aeee391cda85"
+      },
+      "cacheRevision": "f07c12b1684df5c7"
     },
     {
       "src": "mod-id-packs/handcrafted.js",
       "textures": {
-        "namespace": "handcrafted"
-      }
+        "namespace": "handcrafted",
+        "cacheRevision": "ebd75110392cf917"
+      },
+      "cacheRevision": "3db879256d7fae0d"
     },
     {
       "src": "mod-id-packs/hearth_and_timber.js",
       "textures": {
-        "namespace": "hearth_and_timber"
-      }
+        "namespace": "hearth_and_timber",
+        "cacheRevision": "209cd096a692ca51"
+      },
+      "cacheRevision": "e05d7e59b65a0bca"
     },
     {
       "src": "mod-id-packs/herbalbrews.js",
       "textures": {
-        "namespace": "herbalbrews"
-      }
+        "namespace": "herbalbrews",
+        "cacheRevision": "eea75246a8c64181"
+      },
+      "cacheRevision": "b37d5055c3b73fc3"
     },
     {
       "src": "mod-id-packs/kaleidoscope_cookery.js",
       "textures": {
-        "namespace": "kaleidoscope_cookery"
-      }
+        "namespace": "kaleidoscope_cookery",
+        "cacheRevision": "a57493b0e57548c3"
+      },
+      "cacheRevision": "953035b0c79b30cc"
     },
     {
       "src": "mod-id-packs/kaleidoscope_tavern.js",
       "textures": {
-        "namespace": "kaleidoscope_tavern"
-      }
+        "namespace": "kaleidoscope_tavern",
+        "cacheRevision": "08674574c85090c3"
+      },
+      "cacheRevision": "972e4786e731f4d6"
     },
     {
       "src": "mod-id-packs/lilis_pottery.js",
       "textures": {
-        "namespace": "lilis_pottery"
-      }
+        "namespace": "lilis_pottery",
+        "cacheRevision": "17816ef8d92c0866"
+      },
+      "cacheRevision": "b0ca777bb15523f4"
     },
     {
       "src": "mod-id-packs/stagecoach.js",
       "textures": {
         "namespace": "stagecoach"
-      }
+      },
+      "cacheRevision": "81b69cbfa314e707"
     },
     {
       "src": "mod-id-packs/vinery.js",
       "textures": {
-        "namespace": "vinery"
-      }
+        "namespace": "vinery",
+        "cacheRevision": "a715e5241cec9b2e"
+      },
+      "cacheRevision": "6f684a807f0d44ea"
     },
     {
       "src": "mod-id-packs/supplementaries.js",
@@ -132,7 +155,7 @@
     },
     {
       "src": "mod-id-packs/biomesoplenty.js",
-      "cacheRevision": "2672526e976cc887"
+      "cacheRevision": "2e8418d5e7ea8d03"
     },
     {
       "src": "mod-id-packs/netherexp.js",
@@ -214,7 +237,7 @@
       "src": "mod-id-packs/tide.js",
       "textures": {
         "namespace": "tide",
-        "cacheRevision": "2ba8febeab66f025"
+        "cacheRevision": "7aa5067544f1c9f7"
       },
       "cacheRevision": "3a7775217d3b7ec1"
     },
@@ -224,7 +247,7 @@
     },
     {
       "src": "mod-id-packs/handcrafted.js",
-      "cacheRevision": "111cae86350c633e"
+      "cacheRevision": "3db879256d7fae0d"
     },
     {
       "src": "mod-id-packs/sophisticated_backpacks.js",
@@ -391,10 +414,14 @@
     {
       "src": "mod-textures.js",
       "cacheRevision": "5f5a078a7863e95f"
+    },
+    {
+      "src": "gui-atlas.js",
+      "cacheRevision": "70bcd35680a66eb4"
     }
   ],
   "app": {
     "src": "app.js",
-    "cacheRevision": "a4d6ebccb876083c"
+    "cacheRevision": "6c498a5cc0427d70"
   }
 }

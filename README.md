@@ -25,6 +25,23 @@ It is made for the [Questlog mod](https://modrinth.com/mod/questlog). It is not 
 
 ## What it does
 
+The editor keeps the current file visible in its header, with direct **Preview**
+and **GUI Studio** actions. Display follows **Settings → Icon and sounds →
+Description → Preview**. Quest switches share one compact container with four
+columns where space allows; icon kind, item ID and both sounds share one row.
+The centered Display, Progress and Advanced tabs divide the toolbar evenly,
+with undo/redo alongside. Chapters use matching surfaces and toolbar placement.
+Grids collapse on smaller panels, and Settings navigation stays reachable.
+
+To replace GUI textures for **all quests and the quest list**, open
+**Settings → Project → Global GUI textures**, then choose **Import PNG** on the
+matching texture card. Cards show required dimensions and whether the default or
+a custom texture is active. Use Reset to restore an individual default.
+Imports are included in full project/resource-pack exports.
+
+See [GUI rendering and imports](GUI-RENDERING.md) for supported atlases and
+limitations, and [UI refinement notes](UI-REFINEMENT.md) for design decisions.
+
 - Edit Questlog quests and chapters with live JSON and a live in-game style preview.
 - Import your own files. Single JSON files, a whole folder, a ZIP, or pasted JSON.
 - Export in the shape you need: one file, quests and chapters only, or the full project ZIP with the resource pack.

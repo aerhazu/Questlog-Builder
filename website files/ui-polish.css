@@ -1,0 +1,153 @@
+/* Workflow refinements. Theme tokens and layout engines remain authoritative. */
+.editor-file-context{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 0 14px;margin:0 0 18px;border-bottom:1px solid var(--bd);color:var(--tx)}
+.editor-file-context-name{display:flex;align-items:center;gap:10px;min-width:0}
+.editor-file-context-name strong{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.editor-file-kind{font-size:11px;color:var(--mu);padding:3px 7px;border:1px solid var(--bd);border-radius:var(--r);flex-shrink:0}
+.editor-file-actions{display:flex;gap:6px;flex-shrink:0}
+html:not(#ds) .editor-file-actions .btn{min-height:32px;padding:5px 10px;font-size:12px}
+html:not(#ds) .display-identity-panel{margin-bottom:16px!important}
+html:not(#ds) .display-meta-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important;margin:18px 0!important}
+html:not(#ds) .display-meta-grid .field{min-width:0;margin:0}
+html:not(#ds) .display-toggles{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px!important;margin-top:20px!important;padding:18px 0!important;border-top:1px solid var(--bd)!important}
+html:not(#ds) .display-toggle-group{align-content:start;align-items:start;gap:7px!important}
+html:not(#ds) .display-toggle-group-label{flex-basis:100%;margin-bottom:2px;font-size:11px!important;letter-spacing:.04em!important}
+html:not(#ds) .field>label{font-size:11.5px!important;letter-spacing:.025em!important;text-transform:none;line-height:1.5}
+html:not(#ds) .display-tabs-wrap{padding-top:6px!important;z-index:8}
+html:not(#ds) .form-tabs-row{flex-wrap:wrap;row-gap:6px!important}
+html:not(#ds) .form-tabs{min-width:0;flex-wrap:wrap}
+html:not(#ds) .progress-section{border-radius:var(--r2);border:1px solid var(--bd);overflow:visible}
+html:not(#ds) .progress-section-head{gap:10px;padding:14px!important;align-items:center;flex-wrap:wrap}
+html:not(#ds) .progress-section-desc{line-height:1.5}
+html:not(#ds) .advanced-group{padding:16px;margin-bottom:16px;border:1px solid var(--bd);border-radius:var(--r2)}
+html:not(#ds) .advanced-grid{gap:14px}
+html:not(#ds) #preferencesProject{grid-column:1/-1;max-width:100%;min-width:0}
+html:not(#ds) .preferences-nav-item{min-height:38px}
+html:not(#ds) .preferences-nav-item:focus-visible{outline:2px solid var(--ac);outline-offset:-2px}
+html:not(#ds) .gui-atlas-card{gap:10px;padding:18px}
+html:not(#ds) .gui-atlas-actions .btn{min-height:36px}
+html:not(#ds) .mod-pack-row{border-radius:var(--r2)}
+html:not(#ds) #fileList .fi{min-height:34px;gap:7px}
+html:not(#ds) #fileList .fi-name{line-height:1.4}
+html:not(#ds) #fileList .fi:focus-visible{outline:2px solid var(--ac);outline-offset:-2px}
+html:not(#ds) .sidebar-list-head{min-height:42px}
+.sidebar-selection-summary{margin:0 12px 8px;color:var(--mu);font-size:11px;line-height:1.5}
+@media(max-width:780px){
+ .editor-file-context{flex-wrap:wrap;gap:10px;margin-bottom:14px}
+ .editor-file-context-name{flex:1 1 160px}
+ html:not(#ds) .display-toggles{grid-template-columns:1fr}
+ html:not(#ds) .display-meta-grid{grid-template-columns:minmax(0,1fr)!important}
+ html:not(#ds) .display-toggles .toggle-label{min-height:34px;height:auto!important;padding-block:7px!important}
+ html:not(#ds) #fileList .fi{min-height:40px}
+}
+@media(prefers-reduced-motion:reduce){.editor-file-context *{scroll-behavior:auto}}
+
+@media(max-width:980px){
+ html:not(#ds) .preferences-layout{grid-template-rows:auto minmax(0,1fr);min-height:0}
+ html:not(#ds) .preferences-nav{display:flex!important;flex-direction:row;gap:6px;overflow-x:auto;min-width:0;padding:8px;border-bottom:1px solid var(--bd);border-right:0}
+ html:not(#ds) .preferences-nav-group{display:contents}
+ html:not(#ds) .preferences-nav .settings-label{display:none}
+ html:not(#ds) .preferences-nav-item{width:auto;flex:0 0 auto;min-height:40px;white-space:nowrap;margin:0}
+ html:not(#ds) .preferences-content{min-height:0;min-width:0;padding:16px;overflow:auto}
+}
+
+/* Stronger editor hierarchy, with aligned settings instead of wrapping chips. */
+html:not(#ds) body[data-layout="classic"] #panelForm{padding:16px 20px 24px;max-width:1120px}
+.editor-file-context{padding:10px 12px;margin-bottom:16px;border:1px solid var(--bd);border-left:3px solid var(--ac);border-radius:8px;background:color-mix(in srgb,var(--sf2) 86%,var(--ac) 4%)}
+.editor-file-context-name strong{font-size:14px}
+html:not(#ds) #panelForm .display-identity-panel{padding:14px!important;border:1px solid var(--bd)!important;border-radius:8px;background:var(--sf)!important;margin-bottom:12px!important}
+html:not(#ds) #qf_title{font-size:18px!important;font-weight:650;letter-spacing:-.02em;height:40px!important}
+html:not(#ds) #panelForm .display-identity-fields{gap:10px!important}
+html:not(#ds) #panelForm .display-icon-preview{margin-top:22px}
+html:not(#ds) #panelForm .display-tabs-wrap{border:1px solid var(--bd)!important;border-radius:7px;padding:4px!important;margin-bottom:14px!important;background:var(--sf)!important}
+html:not(#ds) #panelForm .tab-btn{height:34px!important;border-radius:4px!important;padding:0 14px!important}
+html:not(#ds) #panelForm .tab-btn.active{background:var(--ac-bg)!important;color:var(--ac)!important}
+html:not(#ds) #panelForm .tab-btn.active::after{left:8px;right:8px;bottom:0}
+html:not(#ds) #panelForm .form-history-slot{padding-bottom:0}
+html:not(#ds) #panelForm .description-editor{border:1px solid var(--bd2)!important;border-radius:8px!important;background:var(--sf)!important}
+html:not(#ds) #panelForm .description-editor textarea{min-height:112px!important;padding:14px!important;line-height:1.65!important;background:var(--field-bg,var(--bg))!important}
+html:not(#ds) #panelForm .display-meta-grid{gap:10px 14px!important;margin:12px 0!important;padding:12px;border:1px solid var(--bd);border-radius:8px;background:var(--sf)}
+html:not(#ds) #panelForm .display-toggles{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;padding:0!important;margin:8px 0 10px!important;border:0!important;align-items:start}
+.quest-option-column{display:flex;flex-direction:column;gap:8px;min-width:0}
+html:not(#ds) #panelForm .display-toggle-group{display:flex!important;flex-direction:column;gap:0!important;padding:0!important;border:1px solid var(--bd)!important;border-radius:8px;background:var(--sf)!important;overflow:hidden;min-width:0}
+html:not(#ds) #panelForm .display-toggle-group-label{display:block;flex-basis:auto;align-self:stretch;margin:0;padding:6px 10px!important;font-size:11px!important;font-weight:650;letter-spacing:.02em!important;color:var(--tx)!important;background:color-mix(in srgb,var(--sf2) 90%,var(--ac) 5%)!important;border-bottom:1px solid var(--bd)!important}
+html:not(#ds) #panelForm .display-toggle-group .toggle-label{display:flex!important;flex-direction:row-reverse;justify-content:space-between;align-self:stretch;align-items:center;gap:12px!important;height:auto!important;min-height:30px!important;padding:5px 10px!important;border:0!important;border-bottom:1px solid var(--bd)!important;border-radius:0!important;margin:0!important;white-space:normal;line-height:1.4;color:var(--tx)!important;background:transparent!important;font-size:12px!important;text-align:left}
+html:not(#ds) #panelForm .display-toggle-group .toggle-label:last-child{border-bottom:0!important}
+html:not(#ds) #panelForm .display-toggle-group .toggle-label:hover{background:var(--hover)!important}
+html:not(#ds) #panelForm .display-toggle-group .toggle-label:has(input:checked){background:color-mix(in srgb,var(--ac) 7%,transparent)!important}
+html:not(#ds) #panelForm :is(.display-toggle-group,.compact-options) input[type="checkbox"]{flex-shrink:0;width:28px!important;height:16px!important;min-height:16px;border-radius:9px;border:1px solid var(--bd2);background:var(--bd);position:relative}
+html:not(#ds) #panelForm :is(.display-toggle-group,.compact-options) input[type="checkbox"]::before{content:''!important;display:block!important;position:absolute;left:2px;top:2px;width:10px;height:10px;background:var(--tx);border-radius:50%;transform:none!important;clip-path:none!important}
+html:not(#ds) #panelForm :is(.display-toggle-group,.compact-options) input[type="checkbox"]:checked{background:var(--ac)!important;border-color:var(--ac)!important}
+html:not(#ds) #panelForm :is(.display-toggle-group,.compact-options) input[type="checkbox"]:checked::before{left:14px;background:var(--ac-tx,var(--bg))}
+html:not(#ds) #panelForm :is(.display-toggle-group,.compact-options) input[type="checkbox"]::after{content:none!important}
+html:not(#ds) body[data-layout="classic"] .sidebar{background:linear-gradient(180deg,var(--sf),color-mix(in srgb,var(--sf) 94%,var(--ac) 6%))!important}
+html:not(#ds) #fileList .fi.active{border-radius:6px!important;background:color-mix(in srgb,var(--sf2) 70%,var(--ac) 18%)!important}
+html:not(#ds) #panelForm .progress-section{background:var(--sf);border:1px solid var(--bd)!important;border-radius:8px}
+html:not(#ds) #panelForm .progress-section-head{background:var(--sf2);border-bottom:1px solid var(--bd);padding:12px!important}
+@media(max-width:600px){
+ html:not(#ds) #panelForm .display-toggles{grid-template-columns:minmax(0,1fr)!important}
+ html:not(#ds) body[data-layout="classic"] #panelForm{padding:12px}
+ html:not(#ds) #panelForm .display-identity-panel{padding:10px!important}
+ html:not(#ds) #panelForm .display-meta-grid{padding:10px}
+}
+html:not(#ds) #panelForm .quest-option-column{margin:0!important}
+html:not(#ds) #panelForm .display-toggle-group{flex-wrap:nowrap!important;align-items:stretch!important;justify-content:flex-start!important}
+html:not(#ds) #panelForm .display-toggle-group>*{width:100%!important;box-sizing:border-box!important;flex-shrink:0}
+html:not(#ds) #panelForm .display-meta-grid{padding:12px!important}
+/* Respond to the editor panel width, including floating Workbench panels. */
+#panelForm{container-type:inline-size;container-name:quest-editor}
+html:not(#ds) #panelForm .display-meta-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+@container quest-editor (max-width:520px){html:not(#ds) #panelForm .display-toggles{grid-template-columns:minmax(0,1fr)!important}}
+@container quest-editor (max-width:420px){html:not(#ds) #panelForm .display-meta-grid{grid-template-columns:minmax(0,1fr)!important}}
+html:not(#ds) #panelForm .display-toggles{align-items:start!important}
+html:not(#ds) #panelForm .display-toggle-group-label{display:block!important;text-align:left!important;text-transform:none!important}
+
+/* Chapters share the quest editor surfaces, compact switches and field rhythm. */
+html:not(#ds) #panelForm .chapter-editor-section{border:0!important;background:transparent!important}
+html:not(#ds) #panelForm .chapter-editor-body{padding:0!important;display:flex;flex-direction:column;gap:10px}
+html:not(#ds) #panelForm .chapter-identity-panel,html:not(#ds) #panelForm .chapter-icon-panel{padding:12px!important;border:1px solid var(--bd);border-radius:8px;background:var(--sf);min-width:0}
+html:not(#ds) #panelForm .chapter-identity-panel .g2{grid-template-columns:minmax(0,1fr) 100px!important;gap:10px!important}
+html:not(#ds) #panelForm .chapter-identity-panel .field,html:not(#ds) #panelForm .chapter-icon-panel .field{margin-bottom:0!important;min-width:0}
+html:not(#ds) #panelForm .chapter-identity-panel>.field{margin-bottom:10px!important}
+html:not(#ds) #cf_name{font-size:18px!important;font-weight:650;height:40px!important}
+.chapter-section-label{display:block;font-size:11px;font-weight:650;color:var(--mu);margin-bottom:8px}
+html:not(#ds) #panelForm .chapter-options{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:0!important}
+html:not(#ds) #panelForm .chapter-options .display-toggle-group-label{grid-column:1/-1}
+html:not(#ds) #panelForm .chapter-options .toggle-label{border-bottom:0!important;border-right:1px solid var(--bd)!important;min-width:0}
+html:not(#ds) #panelForm .chapter-options .toggle-label:last-child{border-right:0!important}
+html:not(#ds) #panelForm .chapter-options-hint{margin:0!important;font-size:11px;color:var(--mu)}
+@container quest-editor (max-width:520px){html:not(#ds) #panelForm .chapter-options{grid-template-columns:minmax(0,1fr)}html:not(#ds) #panelForm .chapter-options .toggle-label{border-right:0!important;border-bottom:1px solid var(--bd)!important}}
+@media(pointer:coarse){html:not(#ds) #panelForm .display-toggle-group .toggle-label{min-height:40px!important}}
+
+html:not(#ds) #panelForm .chapter-icon-panel .g2{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;width:100%!important;max-width:none!important}
+@container quest-editor (max-width:420px){html:not(#ds) #panelForm .chapter-icon-panel .g2{grid-template-columns:minmax(0,1fr)!important}}
+
+/* One wrapping options tray replaces the four stacked settings cards. */
+html:not(#ds) #panelForm .display-toggles.compact-options{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:2px 8px!important;padding:8px!important;margin:8px 0 10px!important;border:1px solid var(--bd)!important;border-radius:8px;background:var(--sf)!important}
+html:not(#ds) #panelForm .compact-options>.toggle-label{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:7px!important;width:auto!important;min-width:0;min-height:28px!important;height:auto!important;padding:4px 6px!important;margin:0!important;border:0!important;border-radius:4px!important;background:transparent!important;white-space:normal!important;font-size:12px!important;line-height:1.35!important;color:var(--tx)!important}
+html:not(#ds) #panelForm .compact-options>.toggle-label:hover{background:var(--hover)!important}
+html:not(#ds) #panelForm .compact-options>.toggle-label:has(input:focus-visible){outline:2px solid var(--ac);outline-offset:-2px}
+.chapter-tab-label{padding:8px 10px;font-size:12px;font-weight:600;color:var(--tx)}
+@container quest-editor (max-width:560px){html:not(#ds) #panelForm .display-toggles.compact-options{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@container quest-editor (max-width:350px){html:not(#ds) #panelForm .display-toggles.compact-options{grid-template-columns:minmax(0,1fr)!important}}
+@media(pointer:coarse){html:not(#ds) #panelForm .compact-options>.toggle-label{min-height:40px!important}}
+
+/* Shared compact editor rhythm and toolbar alignment. */
+html:not(#ds) #panelForm .form-tabs-row{display:flex!important;align-items:center!important;gap:8px!important;width:100%;overflow:visible!important}
+html:not(#ds) #panelForm #formTabs{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));flex:1!important;min-width:0;gap:4px!important}
+html:not(#ds) #panelForm #formTabs>.tab-btn,html:not(#ds) #panelForm #formTabs>.adv-wrap{width:100%!important;min-width:0;text-align:center!important}
+html:not(#ds) #panelForm #formTabs .tab-btn{display:flex!important;align-items:center;justify-content:center!important;width:100%!important;padding:0 6px!important}
+html:not(#ds) #panelForm .form-history-slot{display:flex!important;align-items:center!important;align-self:center!important;padding:0!important;flex:0 0 auto}
+html:not(#ds) #panelForm .display-toggles.compact-options{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:0!important;padding:0!important;overflow:hidden}
+html:not(#ds) #panelForm .compact-options>.toggle-label{flex-direction:row-reverse!important;justify-content:space-between!important;border-radius:0!important;border-right:1px solid var(--bd)!important;border-bottom:1px solid var(--bd)!important;padding:6px 8px!important;min-height:34px!important;font-size:11px!important}
+html:not(#ds) #panelForm .display-meta-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;margin:8px 0!important;padding:10px!important}
+html:not(#ds) #panelForm .chapter-options{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+html:not(#ds) #panelForm .chapter-icon-panel{padding:10px!important}
+html:not(#ds) #panelForm .description-field{margin:0 0 10px!important}
+html:not(#ds) #panelForm #chapterTabSlot #formTabs{display:flex!important}
+@container quest-editor (max-width:600px){
+ html:not(#ds) #panelForm .display-toggles.compact-options,html:not(#ds) #panelForm .display-meta-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@container quest-editor (max-width:350px){
+ html:not(#ds) #panelForm .display-toggles.compact-options,html:not(#ds) #panelForm .display-meta-grid,html:not(#ds) #panelForm .chapter-options{grid-template-columns:minmax(0,1fr)!important}
+}
+@media(pointer:coarse){html:not(#ds) #panelForm .compact-options>.toggle-label{min-height:40px!important}}

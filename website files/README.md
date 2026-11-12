@@ -1,5 +1,13 @@
 # Questlog mod ID pack loader
 
+Release 4.5.0 adds a focused editing workflow and global GUI atlas imports.
+Quest Display orders compact settings, icon/sound fields, description and preview.
+Responsive four-column grids, centered tabs and shared chapter/quest history
+toolbar placement keep the editors consistent.
+Use **Settings → Project → Global GUI textures → Import PNG** for textures
+shared across all quests and the quest list. See [the main README](../README.md),
+[UI notes](../UI-REFINEMENT.md), and [GUI rendering guide](../GUI-RENDERING.md).
+
 Website releases and cache revisions are managed centrally. See
 [VERSIONS.md](../VERSIONS.md) for the version inventory and deployment steps.
 After editing assets, run `node tools/update-website-assets.cjs` from the

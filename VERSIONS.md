@@ -1,11 +1,32 @@
 # Website versions and release guide
 
-The current website release is **4.4.0**. The authoritative value is
+The current website release is **4.5.0**. The authoritative value is
 `websiteVersion` in `website files/mod-id-packs-manifest.json`. Release 4.3.1
 normalized the previous `4.03-*` build labels. Website releases do not change
 Minecraft or mod versions.
 
-## This push: 4.4.0
+## This push: 4.5.0
+
+This release combines the focused UI refinement with global GUI atlas importing
+and original-atlas rendering. Imports live in Settings → Project, apply across
+all quests and the quest list, and do not require a quest to be selected.
+Preview/GUI Studio actions are available in the file header. Quest flags stay in
+Display in one compact four-column options container. Icon/sound fields follow,
+then description and preview. Centered tabs and aligned history controls share
+the toolbar; chapters use the same general structure. Grids adapt to available
+panel width. Small-screen Settings navigation remains visible.
+
+This pending push remains 4.5.0, including the details-toggle JSON highlight
+refresh fix and the final layout refinements; no additional version bump is
+needed for these edits before the release is published.
+
+No saved-data schema, Minecraft target, or resource-pack format bump is included.
+Custom atlases are embedded in export metadata; full builder project ZIPs carry
+them and resource-pack exports contain the proper QuestLog resource paths.
+See [GUI-RENDERING.md](GUI-RENDERING.md), [UI-REFINEMENT.md](UI-REFINEMENT.md),
+and [CHANGELOG.md](CHANGELOG.md) for details and compatibility limits.
+
+## Previous release: 4.4.0
 
 This is a feature release covering startup layout stability, JSON highlighting,
 sidebar multi-selection/group movement, active rename/duplicate selection,
@@ -25,7 +46,7 @@ and known limits. No saved-data schema or resource-pack format bump is included.
 
 1. Edit the website, mod ID packs, or texture files.
 2. For a published release, set `websiteVersion` in the manifest. Use
-   `MAJOR.MINOR.PATCH`: `4.4.1` for fixes, `4.5.0` for features, `5.0.0` for
+   `MAJOR.MINOR.PATCH`: `4.5.1` for fixes, `4.6.0` for features, `5.0.0` for
    breaking website behavior. Local edits can keep the same release number.
 3. Run from the repository root (Node.js required, no packages to install):
 
@@ -47,7 +68,7 @@ Editing the release number alone does not refresh asset bytes: rerun the command
 
 | Value / location | Current value or example | When to change it | Effect |
 | --- | --- | --- | --- |
-| `websiteVersion`, manifest | `4.4.0` | Publishing a website release | Supplies the app version, Settings version, export layout's app version, and current changelog selection. |
+| `websiteVersion`, manifest | `4.5.0` | Publishing a website release | Supplies the app version, Settings version, export layout's app version, and current changelog selection. |
 | `cacheRevision`, manifest script entries | Generated 16-character hash | Automatically, when that JS file changes | Adds `?v=<hash>` to that script URL so the browser requests changed content. |
 | `?v=...`, bootstrap JS and CSS in `index.html` | Generated hash | Automatically, when those files change | Refreshes the stylesheet, loader, error guard, vanilla ID/sound scripts, and bundled JSZip independently. |
 | `textures.cacheRevision`, enabled mod entries | Generated folder hash | Automatically, when files are added, changed, or removed in that configured mod folder | Adds `?v=<hash>` to mod PNG requests. Does not change filenames or IDs. |

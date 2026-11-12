@@ -1,0 +1,34 @@
+<!doctype html><meta charset="utf-8"><title>GUI atlas regression tests</title>
+<pre id="results">Running…</pre>
+<script src="../website%20files/gui-atlas.js"></script>
+<script>
+(async()=>{
+const storageKey='ql.export.metadata.v1',saved=localStorage.getItem(storageKey),checks={};
+const api=window.QUESTLOG_GUI_ATLAS;
+try{
+ await window.QUESTLOG_GUI_ATLAS_READY;
+ checks.originalAtlasLoaded=api.url('questPage').endsWith('quest_page.png');
+ const before=api.panel(340,200);
+ const c=document.createElement('canvas');c.width=1024;c.height=512;
+ const ctx=c.getContext('2d');ctx.fillStyle='#ff0000';ctx.fillRect(0,0,1024,512);
+ const blob=await new Promise(resolve=>c.toBlob(resolve,'image/png'));
+ await api.importPng('questPage',new File([blob],'custom.png',{type:'image/png'}));
+ checks.importChangesPanel=api.panel(340,200)!==before;
+ checks.saved=!!JSON.parse(localStorage.getItem(storageKey)).guiTextures.questPage;
+ let exported={};api.export({file:(path,data,options)=>exported[path]={data,options}});
+ checks.exportResourcePath=!!exported['assets/questlog/textures/gui/quest_page.png']?.options.base64;
+ const image=new Image();image.src=api.panel(340,200);await image.decode();
+ const rendered=document.createElement('canvas');rendered.width=340;rendered.height=200;
+ rendered.getContext('2d').drawImage(image,0,0);checks.pixelExact=rendered.getContext('2d').getImageData(339,199,1,1).data[0]===255;
+ const custom=api.panel(340,200);await api.restore();checks.recovery=api.panel(340,200)===custom;
+ let rejected=false;try{await api.importPng('questPage',new File(['invalid'],'invalid.png'));}catch{rejected=true;}checks.invalidPngRejected=rejected;
+ c.width=16;c.height=16;const wrong=await new Promise(resolve=>c.toBlob(resolve,'image/png'));
+ rejected=false;try{await api.importPng('questPage',new File([wrong],'wrong.png'));}catch{rejected=true;}checks.dimensionsRejected=rejected;
+ await api.reset('questPage');checks.reset=api.panel(340,200)===before;
+ const calls=[];api.nineSlice({drawImage:(...args)=>calls.push(args)},image,{x:375,y:174,w:275,h:166},340,200);
+ checks.nineSlices=calls.length===9;checks.fixedCorners=calls[0].slice(5).join(',')==='0,0,16,16';
+ document.querySelector('#results').textContent=JSON.stringify({status:Object.values(checks).every(Boolean)?'passed':'failed',checks},null,2);
+}catch(error){document.querySelector('#results').textContent=JSON.stringify({status:'error',message:error.message,checks});}
+finally{if(saved===null)localStorage.removeItem(storageKey);else localStorage.setItem(storageKey,saved);await api.restore();}
+})();
+</script>

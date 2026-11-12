@@ -1,5 +1,41 @@
 ﻿# Changelog
 
+## v4.5.0 — Focused editing and global GUI textures
+
+### Editing experience
+
+- Quest Display now orders settings, icon/sound fields, description, then preview. Options use four columns and icon/sound fields share one four-column row where space permits; narrower editors collapse the grids. Tabs divide the available toolbar width evenly with centered labels and aligned history controls. Chapters retain the same toolbar and settings-before-icon-before-preview rhythm.
+
+- Fixed highlighted JSON lagging one edit behind after delayed form updates, including both details toggles; saved values and visible JSON now stay synchronized.
+- Replaced separate quest option cards with one compact, wrapping switch tray to leave more room for previews, while retaining larger touch targets.
+- Moved chapter undo/redo into a matching toolbar below the identity fields, using the existing shared history controls.
+- Matched the chapter editor to quest surfaces with identity fields, compact chapter options, and a dedicated icon section.
+
+- Added a more distinct accent-edged file header, title card, active tabs, and surfaced description/metadata sections while retaining theme colors and the existing preview aspect ratio.
+
+- Added a current-file header with direct Preview and GUI Studio actions.
+- Kept visibility, completion, details and notification switches together in Display, leaving Progress focused on objective/reward editing.
+- Arranged icon settings and sound IDs into a responsive four-column row, and refined label readability, spacing, focus feedback and touch targets.
+- Added visible multi-selection feedback and programmatic associations for existing editor field labels.
+- Restored Settings section navigation on narrow screens with a horizontally scrollable section bar.
+- Preserved Classic, Focused, Workbench, Canvas, existing themes/fonts, sounds, and GUI Studio workflows; presentation changes reuse existing controls and handlers.
+
+### GUI textures and compatibility
+
+- Replaced live CSS dependencies on pre-generated GUI slices with regions derived from original atlases at runtime.
+- Shared source-backed nine-slice panel rendering between previews and GUI Studio, preserving fixed borders as panel sizes change.
+- Corrected QuestDetails description/detail content bounds and default/button visibility behavior from the supplied QuestLog 3.5.4 source.
+- Added global PNG imports in Settings → Project for all quests and the quest list, with visible Import PNG actions, dimensions, applied/default status, individual resets, persistence, and project/resource-pack export.
+- Added controls for `details_open_by_default` and `disable_details_button`. Existing GUI Studio edits retain precedence over imported base atlases.
+- Documented source evidence, tests, and browser-versus-Minecraft limitations in `GUI-RENDERING.md` and the UI assessment in `UI-REFINEMENT.md`.
+
+### Verification
+
+- Node regression checks cover editor behavior, atlas geometry, global import placement, mod textures, and cache generation.
+- The final section-order/four-column layout changes passed 13 automated tests; browser visual verification of that latest pass remains pending.
+- Earlier browser checks cover the compact editor and Project settings; the atlas lifecycle harness exercises importing, recovery, reset, format/dimension rejection, and export paths.
+- No in-game runtime comparison or exhaustive assistive-technology/theme matrix is claimed. See the supporting notes for exact test coverage.
+
 ## v4.4.0 — Editor improvements and QuestLog 3.5.4 support
 
 ### Added

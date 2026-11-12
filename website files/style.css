@@ -487,25 +487,25 @@ html[data-motion-effects="off"] .settings-menu.preferences-panel{transform:trans
 .ql-preview-layout{grid-template-columns:calc(var(--ql-left-w) + var(--ql-left-w));gap:12px;align-items:start;width:max-content;max-width:none;}
 .ql-preview-layout.details-open{grid-template-columns:calc(var(--ql-left-w) + var(--ql-left-w)) calc(var(--ql-right-w) + var(--ql-right-w));}
 .ql-preview-book{gap:4px;justify-items:end;transform:translate(calc(var(--ql-left-x) + var(--ql-left-x)),calc(var(--ql-left-y) + var(--ql-left-y)));}
-.ql-preview-paper,.ql-preview-details{box-sizing:border-box;width:calc(var(--ql-left-w) + var(--ql-left-w));height:calc(var(--ql-panel-h) + var(--ql-panel-h));min-height:0;border:0;border-radius:0;background:transparent url("questlog-assets/gui/generated/quest_detail_panel.png") center/100% 100% no-repeat;box-shadow:none;padding:0;position:relative;image-rendering:pixelated;}
+.ql-preview-paper,.ql-preview-details{box-sizing:border-box;width:calc(var(--ql-left-w) + var(--ql-left-w));height:calc(var(--ql-panel-h) + var(--ql-panel-h));min-height:0;border:0;border-radius:0;background:transparent var(--ql-atlas-quest_detail_panel) center/100% 100% no-repeat;box-shadow:none;padding:0;position:relative;image-rendering:pixelated;}
 .ql-preview-details{width:calc(var(--ql-right-w) + var(--ql-right-w));display:none;grid-template-rows:none;gap:0;transform:translate(calc(var(--ql-right-x) + var(--ql-right-x)),calc(var(--ql-right-y) + var(--ql-right-y)));}
 .ql-preview-details.open{display:block;}
 .ql-preview-title-row{position:absolute;left:0;right:0;top:26px;height:32px;display:flex;align-items:center;justify-content:center;gap:8px;min-width:0;}
 .ql-preview-title-icon{width:32px;height:32px;display:grid;place-items:center;color:#352313;background:rgba(114,86,54,.3);border:0;box-shadow:none;font:bold 14px/1 var(--mono),monospace;}
 .ql-preview-title-text{max-width:264px;font:20px/1 var(--mono),monospace;color:#332111;text-align:center;text-shadow:2px 2px rgba(244,231,201,.9);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.ql-preview-rule{position:absolute;top:54px;left:calc(var(--ql-left-w) - 252px);width:504px;height:18px;background:transparent url("questlog-assets/gui/generated/small_hr.png") center/100% 100% no-repeat;box-shadow:none;image-rendering:pixelated;}
-.ql-preview-rule.small{top:54px;left:calc(var(--ql-right-w) - 140px);width:280px;height:18px;background-image:url("questlog-assets/gui/generated/panel_hr.png");}
+.ql-preview-rule{position:absolute;top:54px;left:calc(var(--ql-left-w) - 252px);width:504px;height:18px;background:transparent var(--ql-atlas-small_hr) center/100% 100% no-repeat;box-shadow:none;image-rendering:pixelated;}
+.ql-preview-rule.small{top:54px;left:calc(var(--ql-right-w) - 140px);width:280px;height:18px;background-image:var(--ql-atlas-panel_hr);}
 .ql-preview-scroll-area{position:absolute;left:36px;top:72px;width:calc(var(--ql-left-w) + var(--ql-left-w) - 76px);height:calc(var(--ql-content-h) + var(--ql-content-h));display:grid;grid-template-columns:minmax(0,1fr) 24px;gap:8px;background:transparent;padding:0;min-height:0;}
 .ql-preview-description{height:100%;max-height:none;overflow:auto;padding:0 2px 0 0;font:18px/1.16 var(--mono),monospace;color:#3d2815;white-space:pre-wrap;scrollbar-width:none;}
 .ql-preview-scrollbar{height:100%;border-left:0;display:flex;justify-content:center;padding-top:0;}
 .ql-preview-scroll-area:not(.can-scroll) .ql-preview-scrollbar{visibility:hidden;}
-.ql-preview-scrollbar span{width:56px;height:72px;border:0;border-radius:0;background:transparent url("questlog-assets/gui/generated/scrollbar_thumb.png") center/100% 100% no-repeat;box-shadow:none;image-rendering:pixelated;}
+.ql-preview-scrollbar span{width:56px;height:72px;border:0;border-radius:0;background:transparent var(--ql-atlas-scrollbar_thumb) center/100% 100% no-repeat;box-shadow:none;image-rendering:pixelated;}
 .ql-preview-state-line{display:none;}
 .ql-preview-actions{position:relative;width:calc(var(--ql-left-w) + var(--ql-left-w));height:36px;margin-top:4px;padding:0;}
-.ql-preview-actions button{position:absolute;top:0;box-sizing:border-box;min-width:0;width:108px;height:36px;border:0;border-radius:0;background:transparent url("questlog-assets/gui/generated/button.png") center/100% 100% no-repeat;color:#3c2816;font:18px/36px var(--mono),monospace;text-align:center;text-shadow:2px 2px rgba(255,238,206,.75);box-shadow:none;padding:0 8px;cursor:pointer;image-rendering:pixelated;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.ql-preview-actions button:hover,.ql-preview-actions button:focus-visible{background-image:url("questlog-assets/gui/generated/button_hover.png");outline:0;}
-.ql-preview-primary-preview.long{width:176px;background-image:url("questlog-assets/gui/generated/button_long.png");font-size:15px;}
-.ql-preview-primary-preview.long:hover,.ql-preview-primary-preview.long:focus-visible{background-image:url("questlog-assets/gui/generated/button_long_hover.png");}
+.ql-preview-actions button{position:absolute;top:0;box-sizing:border-box;min-width:0;width:108px;height:36px;border:0;border-radius:0;background:transparent var(--ql-atlas-button) center/100% 100% no-repeat;color:#3c2816;font:18px/36px var(--mono),monospace;text-align:center;text-shadow:2px 2px rgba(255,238,206,.75);box-shadow:none;padding:0 8px;cursor:pointer;image-rendering:pixelated;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ql-preview-actions button:hover,.ql-preview-actions button:focus-visible{background-image:var(--ql-atlas-button_hover);outline:0;}
+.ql-preview-primary-preview.long{width:176px;background-image:var(--ql-atlas-button_long);font-size:15px;}
+.ql-preview-primary-preview.long:hover,.ql-preview-primary-preview.long:focus-visible{background-image:var(--ql-atlas-button_long_hover);}
 .ql-preview-dev-controls{position:absolute;left:18px;top:18px;z-index:2;display:flex;gap:6px;padding:5px;background:rgba(12,13,17,.82);border:1px solid rgba(255,255,255,.12);border-radius:4px;}
 .ql-preview-dev-controls button{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#eee;font:11px/1 var(--font);padding:5px 7px;border-radius:3px;cursor:pointer;}
 .ql-preview-dev-controls button.active{background:rgba(212,146,74,.3);border-color:rgba(212,146,74,.55);}
@@ -550,11 +550,11 @@ html[data-motion-effects="off"] .settings-menu.preferences-panel{transform:trans
 .side-info-row{width:100%;text-align:left;border:1px solid var(--bd);border-radius:var(--r);background:rgba(0,0,0,.1);color:var(--tx);padding:8px;margin-top:6px;cursor:pointer;font:12px/1.35 var(--font);}
 .side-info-row:hover{border-color:rgba(212,146,74,.45);background:var(--ac-bg);}
 .ql-preview-scrollbar{position:relative;}
-.ql-preview-scrollbar::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:32px;transform:translateX(-50%);background:url("questlog-assets/gui/generated/scrollbar_track_top.png") top/32px 2px no-repeat,url("questlog-assets/gui/generated/scrollbar_track_bottom.png") bottom/32px 2px no-repeat,url("questlog-assets/gui/generated/scrollbar_track.png") center/32px 2px repeat-y;image-rendering:pixelated;}
+.ql-preview-scrollbar::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:32px;transform:translateX(-50%);background:var(--ql-atlas-scrollbar_track_top) top/32px 2px no-repeat,var(--ql-atlas-scrollbar_track_bottom) bottom/32px 2px no-repeat,var(--ql-atlas-scrollbar_track) center/32px 2px repeat-y;image-rendering:pixelated;}
 .ql-preview-scrollbar span{position:relative;z-index:1;}
 .ql-list-stage{position:relative;min-height:100%;display:grid;place-items:center;padding:24px;overflow:auto;font-family:var(--mono),monospace;}
-.ql-list-screen{position:relative;width:1024px;height:512px;background:url("questlog-assets/gui/questlog.png") center/100% 100% no-repeat;image-rendering:pixelated;color:#4a321c;}
-.ql-list-close{position:absolute;right:112px;bottom:38px;width:108px;height:36px;border:0;background:transparent url("questlog-assets/gui/generated/button.png") center/100% 100% no-repeat;color:#3c2816;font:18px/36px var(--mono),monospace;image-rendering:pixelated;cursor:pointer;}
+.ql-list-screen{position:relative;width:1024px;height:512px;background:var(--ql-atlas-questlog) center/100% 100% no-repeat;image-rendering:pixelated;color:#4a321c;}
+.ql-list-close{position:absolute;right:112px;bottom:38px;width:108px;height:36px;border:0;background:transparent var(--ql-atlas-button) center/100% 100% no-repeat;color:#3c2816;font:18px/36px var(--mono),monospace;image-rendering:pixelated;cursor:pointer;}
 .ql-list-search{position:absolute;left:426px;top:102px;width:510px;height:44px;display:grid;grid-template-columns:auto 1fr 42px;align-items:center;gap:10px;font:34px/1 var(--mono),monospace;}
 .ql-list-search div{height:34px;border:4px solid #6a4725;background:#ead7b7;}
 .ql-list-search i{font-style:normal;text-align:center;font-size:28px;}
@@ -566,10 +566,10 @@ html[data-motion-effects="off"] .settings-menu.preferences-panel{transform:trans
 .ql-list-row i{position:absolute;left:0;top:28px;width:48px;height:48px;display:grid;place-items:center;background:rgba(90,62,34,.22);font:14px/1 var(--mono),monospace;font-style:normal;}
 .ql-list-row span{position:absolute;left:72px;top:30px;font-size:34px;line-height:1;max-width:650px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .ql-list-row b{position:absolute;left:72px;top:62px;font:24px/1 var(--mono),monospace;color:#4ca65a;}
-.ql-list-row em{position:absolute;left:0;right:0;bottom:4px;height:18px;background:url("questlog-assets/gui/generated/big_hr.png") center/100% 100% no-repeat;image-rendering:pixelated;}
+.ql-list-row em{position:absolute;left:0;right:0;bottom:4px;height:18px;background:var(--ql-atlas-big_hr) center/100% 100% no-repeat;image-rendering:pixelated;}
 .ql-list-empty{padding:60px;text-align:center;font-size:30px;}
-.ql-list-bar{position:absolute;right:-4px;top:4px;width:32px;height:506px;background:url("questlog-assets/gui/generated/scrollbar_track_top.png") top/32px 2px no-repeat,url("questlog-assets/gui/generated/scrollbar_track_bottom.png") bottom/32px 2px no-repeat,url("questlog-assets/gui/generated/scrollbar_track.png") center/32px 2px repeat-y;}
-.ql-list-bar span{position:absolute;left:-12px;top:0;width:56px;height:72px;background:url("questlog-assets/gui/generated/scrollbar_thumb.png") center/100% 100% no-repeat;image-rendering:pixelated;}
+.ql-list-bar{position:absolute;right:-4px;top:4px;width:32px;height:506px;background:var(--ql-atlas-scrollbar_track_top) top/32px 2px no-repeat,var(--ql-atlas-scrollbar_track_bottom) bottom/32px 2px no-repeat,var(--ql-atlas-scrollbar_track) center/32px 2px repeat-y;}
+.ql-list-bar span{position:absolute;left:-12px;top:0;width:56px;height:72px;background:var(--ql-atlas-scrollbar_thumb) center/100% 100% no-repeat;image-rendering:pixelated;}
 .ql-list-tabs{position:absolute;left:188px;bottom:-102px;height:98px;display:flex;gap:6px;align-items:start;}
 .ql-list-tabs button{width:92px;height:98px;border:0;background:rgba(198,32,81,.9);border-left:4px solid #3d1220;border-right:4px solid #3d1220;border-bottom:4px solid #3d1220;cursor:pointer;}
 .ql-list-tabs button.active{background:rgba(214,35,88,.98);}
@@ -586,10 +586,10 @@ html[data-motion-effects="off"] .settings-menu.preferences-panel{transform:trans
 .ql-preview-title-icon.ql-icon-tile{width:32px;height:32px;border:0;box-shadow:none;background-size:100% 100%;flex:0 0 auto;}
 .ql-preview-entry-icon{position:absolute;left:0;top:8px;width:32px;height:32px;}
 .ql-preview-detail-row i{display:none;}
-.ql-preview-actions button:hover,.ql-preview-actions button:focus-visible{background-image:url("questlog-assets/gui/generated/button.png");filter:brightness(.92);outline:0;}
-.ql-preview-primary-preview.long:hover,.ql-preview-primary-preview.long:focus-visible{background-image:url("questlog-assets/gui/generated/button_long.png");filter:brightness(.92);}
-.ql-list-close:hover,.ql-list-close:focus-visible{background-image:url("questlog-assets/gui/generated/button.png");filter:brightness(.92);outline:0;}
-.ql-list-search{left:424px;top:138px;width:252px;height:55px;display:block;background:url("questlog-assets/gui/generated/search_tab_expanded.png") center/100% 100% no-repeat;font:18px/1 var(--mono),monospace;image-rendering:pixelated;}
+.ql-preview-actions button:hover,.ql-preview-actions button:focus-visible{background-image:var(--ql-atlas-button);filter:brightness(.92);outline:0;}
+.ql-preview-primary-preview.long:hover,.ql-preview-primary-preview.long:focus-visible{background-image:var(--ql-atlas-button_long);filter:brightness(.92);}
+.ql-list-close:hover,.ql-list-close:focus-visible{background-image:var(--ql-atlas-button);filter:brightness(.92);outline:0;}
+.ql-list-search{left:424px;top:138px;width:252px;height:55px;display:block;background:var(--ql-atlas-search_tab_expanded) center/100% 100% no-repeat;font:18px/1 var(--mono),monospace;image-rendering:pixelated;}
 .ql-list-search span{position:absolute;left:34px;top:20px;color:#5b381f;text-shadow:1px 1px rgba(238,216,180,.9);}
 .ql-list-search div{position:absolute;left:116px;top:23px;width:112px;height:16px;border:0;background:rgba(235,215,181,.78);}
 .ql-list-search i{position:absolute;right:12px;top:18px;width:20px;height:20px;font-size:0;}
@@ -608,15 +608,15 @@ html[data-motion-effects="off"] .settings-menu.preferences-panel{transform:trans
 .ql-list-bar span{left:-14px;top:0;width:56px;height:72px;}
 .ql-list-tabs{left:391px;top:340px;bottom:auto;height:39px;display:flex;gap:2px;align-items:start;}
 .ql-list-tabs button{position:relative;width:28px;height:29px;border:0;background:transparent!important;padding:0;overflow:visible;}
-.ql-list-tabs button::before{content:"";position:absolute;left:-13px;top:-5px;width:54px;height:32px;background:url("questlog-assets/gui/generated/tab_secondary.png") center/100% 100% no-repeat;image-rendering:pixelated;}
-.ql-list-tabs button.primary::before{background-image:url("questlog-assets/gui/generated/tab_main.png");}
-.ql-list-tabs button.active::before{height:39px;background-image:url("questlog-assets/gui/generated/tab_secondary_active.png");}
-.ql-list-tabs button.primary.active::before{background-image:url("questlog-assets/gui/generated/tab_main_active.png");}
+.ql-list-tabs button::before{content:"";position:absolute;left:-13px;top:-5px;width:54px;height:32px;background:var(--ql-atlas-tab_secondary) center/100% 100% no-repeat;image-rendering:pixelated;}
+.ql-list-tabs button.primary::before{background-image:var(--ql-atlas-tab_main);}
+.ql-list-tabs button.active::before{height:39px;background-image:var(--ql-atlas-tab_secondary_active);}
+.ql-list-tabs button.primary.active::before{background-image:var(--ql-atlas-tab_main_active);}
 .ql-list-tab-icon{position:absolute;left:6px;top:3px;width:16px;height:16px;z-index:1;}
 
-.ql-preview-actions button:hover,.ql-preview-actions button:focus-visible{background-image:url("questlog-assets/gui/generated/button_hover.png");filter:none;outline:0;}
-.ql-preview-primary-preview.long:hover,.ql-preview-primary-preview.long:focus-visible{background-image:url("questlog-assets/gui/generated/button_long_hover.png");filter:none;}
-.ql-list-close:hover,.ql-list-close:focus-visible{background-image:url("questlog-assets/gui/generated/button_hover.png");filter:none;outline:0;}
+.ql-preview-actions button:hover,.ql-preview-actions button:focus-visible{background-image:var(--ql-atlas-button_hover);filter:none;outline:0;}
+.ql-preview-primary-preview.long:hover,.ql-preview-primary-preview.long:focus-visible{background-image:var(--ql-atlas-button_long_hover);filter:none;}
+.ql-list-close:hover,.ql-list-close:focus-visible{background-image:var(--ql-atlas-button_hover);filter:none;outline:0;}
 .ql-list-stage{min-width:2140px;min-height:1120px;}
 .ql-list-screen{transform:scale(2);transform-origin:center;}
 .ql-list-screen > div.ql-list-search{display:none;}
@@ -626,19 +626,19 @@ html[data-motion-effects="off"] .settings-menu.preferences-panel{transform:trans
 .ql-preview-detail-row:hover{background:transparent;}
 .ql-preview-detail-row.active{background:transparent;border-color:transparent;}
 .ql-list-search{border:0;padding:0;cursor:pointer;}
-.ql-list-search.minimized{left:589px;top:139px;width:58px;height:55px;background:url("questlog-assets/gui/generated/search_tab_minimized.png") center/100% 100% no-repeat;}
+.ql-list-search.minimized{left:589px;top:139px;width:58px;height:55px;background:var(--ql-atlas-search_tab_minimized) center/100% 100% no-repeat;}
 .ql-list-search.minimized span,.ql-list-search.minimized input{display:none;}
-.ql-list-search.expanded{left:424px;top:138px;width:252px;height:55px;background:url("questlog-assets/gui/generated/search_tab_expanded.png") center/100% 100% no-repeat;}
+.ql-list-search.expanded{left:424px;top:138px;width:252px;height:55px;background:var(--ql-atlas-search_tab_expanded) center/100% 100% no-repeat;}
 .ql-list-search.expanded input{position:absolute;left:116px;top:23px;width:112px;height:16px;border:0;background:transparent;color:#3f2a18;font:10px/16px var(--mono),monospace;outline:0;padding:0 2px;}
 .ql-list-tool{position:absolute;width:26px;height:26px;border:0;padding:0;background:transparent center/100% 100% no-repeat;image-rendering:pixelated;cursor:pointer;z-index:2;}
-.ql-list-condense{left:429px;top:153px;background-image:url("questlog-assets/gui/generated/condense_button.png");}
-.ql-list-condense.active{background-image:url("questlog-assets/gui/generated/expand_button.png");}
-.ql-list-condense:hover{background-image:url("questlog-assets/gui/generated/condense_button_hover.png");}
-.ql-list-condense.active:hover{background-image:url("questlog-assets/gui/generated/expand_button_hover.png");}
-.ql-list-hide{left:411px;top:153px;background-image:url("questlog-assets/gui/generated/visible_button.png");}
-.ql-list-hide.active{background-image:url("questlog-assets/gui/generated/hidden_button.png");}
-.ql-list-hide:hover{background-image:url("questlog-assets/gui/generated/visible_button_hover.png");}
-.ql-list-hide.active:hover{background-image:url("questlog-assets/gui/generated/hidden_button_hover.png");}
+.ql-list-condense{left:429px;top:153px;background-image:var(--ql-atlas-condense_button);}
+.ql-list-condense.active{background-image:var(--ql-atlas-expand_button);}
+.ql-list-condense:hover{background-image:var(--ql-atlas-condense_button_hover);}
+.ql-list-condense.active:hover{background-image:var(--ql-atlas-expand_button_hover);}
+.ql-list-hide{left:411px;top:153px;background-image:var(--ql-atlas-visible_button);}
+.ql-list-hide.active{background-image:var(--ql-atlas-hidden_button);}
+.ql-list-hide:hover{background-image:var(--ql-atlas-visible_button_hover);}
+.ql-list-hide.active:hover{background-image:var(--ql-atlas-hidden_button_hover);}
 .ql-list-screen.condensed .ql-list-row{height:18px;}
 .ql-list-screen.condensed .ql-list-row .ql-list-row-icon{top:1px;}
 .ql-list-screen.condensed .ql-list-row span{top:5px;}
@@ -658,8 +658,8 @@ html[data-motion-effects="off"] .settings-menu.preferences-panel{transform:trans
 .ql-list-screen > div.ql-list-search{display:none!important;}
 .ql-list-search{border:0;padding:0;cursor:pointer;font-size:0;filter:none;}
 .ql-list-search span,.ql-list-search i,.ql-list-search div{display:none!important;}
-.ql-list-search.minimized:hover,.ql-list-search.minimized:focus-visible{background-image:url("questlog-assets/gui/generated/search_tab_minimized_hover.png");outline:0;}
-.ql-list-search.expanded:hover,.ql-list-search.expanded:focus-visible{background-image:url("questlog-assets/gui/generated/search_tab_expanded_hover.png");outline:0;}
+.ql-list-search.minimized:hover,.ql-list-search.minimized:focus-visible{background-image:var(--ql-atlas-search_tab_minimized_hover);outline:0;}
+.ql-list-search.expanded:hover,.ql-list-search.expanded:focus-visible{background-image:var(--ql-atlas-search_tab_expanded_hover);outline:0;}
 .ql-list-search.expanded input{font-size:10px;line-height:16px;}
 .ql-list-tool:hover,.ql-list-tool:focus-visible{filter:brightness(1.08);outline:0;}
 .ql-list-row:hover,.ql-list-row:focus-visible{background:rgba(255,248,226,.18);outline:0;}
@@ -712,8 +712,8 @@ html[data-motion-effects="off"] .settings-menu.preferences-panel{transform:trans
 .ql-preview-entry-icon.ql-icon-tile.placeholder{font-size:12px!important;line-height:32px!important;}
 .ql-list-tab-icon.ql-icon-tile.placeholder,.ql-list-row-icon.ql-icon-tile.placeholder{font-size:9px!important;line-height:16px!important;}
 .ql-preview-actions button,.ql-preview-primary-preview.long{background-repeat:no-repeat!important;background-size:100% 100%!important;background-position:center!important;image-rendering:pixelated;color:#4b371b;font-weight:400!important;text-shadow:none;}
-.ql-preview-actions button:hover,.ql-preview-actions button:focus-visible{background-image:url("questlog-assets/gui/generated/button_hover.png")!important;background-repeat:no-repeat!important;background-size:100% 100%!important;background-position:center!important;filter:none!important;outline:0;}
-.ql-preview-primary-preview.long:hover,.ql-preview-primary-preview.long:focus-visible{background-image:url("questlog-assets/gui/generated/button_long_hover.png")!important;background-repeat:no-repeat!important;background-size:100% 100%!important;background-position:center!important;filter:none!important;}
+.ql-preview-actions button:hover,.ql-preview-actions button:focus-visible{background-image:var(--ql-atlas-button_hover)!important;background-repeat:no-repeat!important;background-size:100% 100%!important;background-position:center!important;filter:none!important;outline:0;}
+.ql-preview-primary-preview.long:hover,.ql-preview-primary-preview.long:focus-visible{background-image:var(--ql-atlas-button_long_hover)!important;background-repeat:no-repeat!important;background-size:100% 100%!important;background-position:center!important;filter:none!important;}
 .ql-list-stage{min-width:100%;min-height:100%;padding:0;place-items:initial;overflow:hidden;}
 .ql-list-screen{position:absolute;left:calc(50% - 1232px);top:calc(50% - 673px);transform:scale(2)!important;transform-origin:top left!important;zoom:1!important;}
 .ql-list-search.minimized{left:589px;top:139px;width:58px;height:55px;}
@@ -729,9 +729,9 @@ html[data-motion-effects="off"] .settings-menu.preferences-panel{transform:trans
 
 /* v3.0 Questlog preview comparison corrections */
 .ql-preview-actions button{-webkit-appearance:none!important;appearance:none!important;border:0!important;border-radius:0!important;background-color:transparent!important;background-repeat:no-repeat!important;background-size:100% 100%!important;background-position:center!important;image-rendering:pixelated;}
-.ql-preview-actions button.long{width:176px;background-image:url("questlog-assets/gui/generated/button_long.png")!important;font-size:15px;}
-.ql-preview-actions button:hover,.ql-preview-actions button:focus-visible{background-image:url("questlog-assets/gui/generated/button_hover.png"),url("questlog-assets/gui/generated/button.png")!important;background-repeat:no-repeat,no-repeat!important;background-size:100% 100%,100% 100%!important;background-position:center,center!important;background-color:transparent!important;}
-.ql-preview-actions button.long:hover,.ql-preview-actions button.long:focus-visible{background-image:url("questlog-assets/gui/generated/button_long_hover.png"),url("questlog-assets/gui/generated/button_long.png")!important;background-repeat:no-repeat,no-repeat!important;background-size:100% 100%,100% 100%!important;background-position:center,center!important;background-color:transparent!important;}
+.ql-preview-actions button.long{width:176px;background-image:var(--ql-atlas-button_long)!important;font-size:15px;}
+.ql-preview-actions button:hover,.ql-preview-actions button:focus-visible{background-image:var(--ql-atlas-button_hover),var(--ql-atlas-button)!important;background-repeat:no-repeat,no-repeat!important;background-size:100% 100%,100% 100%!important;background-position:center,center!important;background-color:transparent!important;}
+.ql-preview-actions button.long:hover,.ql-preview-actions button.long:focus-visible{background-image:var(--ql-atlas-button_long_hover),var(--ql-atlas-button_long)!important;background-repeat:no-repeat,no-repeat!important;background-size:100% 100%,100% 100%!important;background-position:center,center!important;background-color:transparent!important;}
 .ql-list-search.expanded input{width:112px;z-index:1;}
 .ql-list-search.expanded::after{content:"";position:absolute;right:0;top:0;width:58px;height:55px;z-index:2;pointer-events:none;}
 .ql-list-row.no-icon span{left:5px;max-width:218px;}
@@ -4110,25 +4110,25 @@ html[data-surface-texture="grain"] body[data-layout="workbench"] .workbench-shel
     .ql-preview-layout{grid-template-columns:calc(var(--ql-left-w) + var(--ql-left-w));gap:12px;align-items:start;width:max-content;max-width:none;}
     .ql-preview-layout.details-open{grid-template-columns:calc(var(--ql-left-w) + var(--ql-left-w)) calc(var(--ql-right-w) + var(--ql-right-w));}
     .ql-preview-book{gap:4px;justify-items:end;transform:translate(calc(var(--ql-left-x) + var(--ql-left-x)),calc(var(--ql-left-y) + var(--ql-left-y)));}
-    .ql-preview-paper,.ql-preview-details{box-sizing:border-box;width:calc(var(--ql-left-w) + var(--ql-left-w));height:calc(var(--ql-panel-h) + var(--ql-panel-h));min-height:0;border:0;border-radius:0;background:transparent url("questlog-assets/gui/generated/quest_detail_panel.png") center/100% 100% no-repeat;box-shadow:none;padding:0;position:relative;image-rendering:pixelated;}
+    .ql-preview-paper,.ql-preview-details{box-sizing:border-box;width:calc(var(--ql-left-w) + var(--ql-left-w));height:calc(var(--ql-panel-h) + var(--ql-panel-h));min-height:0;border:0;border-radius:0;background:transparent var(--ql-atlas-quest_detail_panel) center/100% 100% no-repeat;box-shadow:none;padding:0;position:relative;image-rendering:pixelated;}
     .ql-preview-details{width:calc(var(--ql-right-w) + var(--ql-right-w));display:none;grid-template-rows:none;gap:0;transform:translate(calc(var(--ql-right-x) + var(--ql-right-x)),calc(var(--ql-right-y) + var(--ql-right-y)));}
     .ql-preview-details.open{display:block;}
     .ql-preview-title-row{position:absolute;left:0;right:0;top:26px;height:32px;display:flex;align-items:center;justify-content:center;gap:8px;min-width:0;}
     .ql-preview-title-icon{width:32px;height:32px;display:grid;place-items:center;color:#352313;background:rgba(114,86,54,.3);border:0;box-shadow:none;font:bold 14px/1 var(--mono),monospace;}
     .ql-preview-title-text{max-width:264px;font:20px/1 var(--mono),monospace;color:#332111;text-align:center;text-shadow:2px 2px rgba(244,231,201,.9);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-    .ql-preview-rule{position:absolute;top:54px;left:calc(var(--ql-left-w) - 252px);width:504px;height:18px;background:transparent url("questlog-assets/gui/generated/small_hr.png") center/100% 100% no-repeat;box-shadow:none;image-rendering:pixelated;}
-    .ql-preview-rule.small{top:54px;left:calc(var(--ql-right-w) - 140px);width:280px;height:18px;background-image:url("questlog-assets/gui/generated/panel_hr.png");}
+    .ql-preview-rule{position:absolute;top:54px;left:calc(var(--ql-left-w) - 252px);width:504px;height:18px;background:transparent var(--ql-atlas-small_hr) center/100% 100% no-repeat;box-shadow:none;image-rendering:pixelated;}
+    .ql-preview-rule.small{top:54px;left:calc(var(--ql-right-w) - 140px);width:280px;height:18px;background-image:var(--ql-atlas-panel_hr);}
     .ql-preview-scroll-area{position:absolute;left:36px;top:72px;width:calc(var(--ql-left-w) + var(--ql-left-w) - 76px);height:calc(var(--ql-content-h) + var(--ql-content-h));display:grid;grid-template-columns:minmax(0,1fr) 24px;gap:8px;background:transparent;padding:0;min-height:0;}
     .ql-preview-description{height:100%;max-height:none;overflow:auto;padding:0 2px 0 0;font:18px/1.16 var(--mono),monospace;color:#3d2815;white-space:pre-wrap;scrollbar-width:none;}
     .ql-preview-scrollbar{height:100%;border-left:0;display:flex;justify-content:center;padding-top:0;}
     .ql-preview-scroll-area:not(.can-scroll) .ql-preview-scrollbar{visibility:hidden;}
-    .ql-preview-scrollbar span{width:56px;height:72px;border:0;border-radius:0;background:transparent url("questlog-assets/gui/generated/scrollbar_thumb.png") center/100% 100% no-repeat;box-shadow:none;image-rendering:pixelated;}
+    .ql-preview-scrollbar span{width:56px;height:72px;border:0;border-radius:0;background:transparent var(--ql-atlas-scrollbar_thumb) center/100% 100% no-repeat;box-shadow:none;image-rendering:pixelated;}
     .ql-preview-state-line{display:none;}
     .ql-preview-actions{position:relative;width:calc(var(--ql-left-w) + var(--ql-left-w));height:36px;margin-top:4px;padding:0;}
-    .ql-preview-actions button{position:absolute;top:0;box-sizing:border-box;min-width:0;width:108px;height:36px;border:0;border-radius:0;background:transparent url("questlog-assets/gui/generated/button.png") center/100% 100% no-repeat;color:#3c2816;font:18px/36px var(--mono),monospace;text-align:center;text-shadow:2px 2px rgba(255,238,206,.75);box-shadow:none;padding:0 8px;cursor:pointer;image-rendering:pixelated;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .ql-preview-actions button:hover,.ql-preview-actions button:focus-visible{background-image:url("questlog-assets/gui/generated/button_hover.png");outline:0;}
-    .ql-preview-primary-preview.long{width:176px;background-image:url("questlog-assets/gui/generated/button_long.png");font-size:15px;}
-    .ql-preview-primary-preview.long:hover,.ql-preview-primary-preview.long:focus-visible{background-image:url("questlog-assets/gui/generated/button_long_hover.png");}
+    .ql-preview-actions button{position:absolute;top:0;box-sizing:border-box;min-width:0;width:108px;height:36px;border:0;border-radius:0;background:transparent var(--ql-atlas-button) center/100% 100% no-repeat;color:#3c2816;font:18px/36px var(--mono),monospace;text-align:center;text-shadow:2px 2px rgba(255,238,206,.75);box-shadow:none;padding:0 8px;cursor:pointer;image-rendering:pixelated;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .ql-preview-actions button:hover,.ql-preview-actions button:focus-visible{background-image:var(--ql-atlas-button_hover);outline:0;}
+    .ql-preview-primary-preview.long{width:176px;background-image:var(--ql-atlas-button_long);font-size:15px;}
+    .ql-preview-primary-preview.long:hover,.ql-preview-primary-preview.long:focus-visible{background-image:var(--ql-atlas-button_long_hover);}
     .ql-preview-dev-controls{position:absolute;left:18px;top:18px;z-index:2;display:flex;gap:6px;padding:5px;background:rgba(12,13,17,.82);border:1px solid rgba(255,255,255,.12);border-radius:4px;}
     .ql-preview-dev-controls button{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#eee;font:11px/1 var(--font);padding:5px 7px;border-radius:3px;cursor:pointer;}
     .ql-preview-dev-controls button.active{background:rgba(212,146,74,.3);border-color:rgba(212,146,74,.55);}
@@ -4270,11 +4270,11 @@ html[data-surface-texture="grain"] body[data-layout="workbench"] .workbench-shel
 .side-info-row{width:100%;text-align:left;border:1px solid var(--bd);border-radius:var(--r);background:rgba(0,0,0,.1);color:var(--tx);padding:8px;margin-top:6px;cursor:pointer;font:12px/1.35 var(--font);}
 .side-info-row:hover{border-color:rgba(212,146,74,.45);background:var(--ac-bg);}
 .ql-preview-scrollbar{position:relative;}
-.ql-preview-scrollbar::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:32px;transform:translateX(-50%);background:url("questlog-assets/gui/generated/scrollbar_track_top.png") top/32px 2px no-repeat,url("questlog-assets/gui/generated/scrollbar_track_bottom.png") bottom/32px 2px no-repeat,url("questlog-assets/gui/generated/scrollbar_track.png") center/32px 2px repeat-y;image-rendering:pixelated;}
+.ql-preview-scrollbar::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:32px;transform:translateX(-50%);background:var(--ql-atlas-scrollbar_track_top) top/32px 2px no-repeat,var(--ql-atlas-scrollbar_track_bottom) bottom/32px 2px no-repeat,var(--ql-atlas-scrollbar_track) center/32px 2px repeat-y;image-rendering:pixelated;}
 .ql-preview-scrollbar span{position:relative;z-index:1;}
 .ql-list-stage{position:relative;min-height:100%;display:grid;place-items:center;padding:24px;overflow:auto;font-family:var(--mono),monospace;}
-.ql-list-screen{position:relative;width:1024px;height:512px;background:var(--ql-list-main-preview,url("questlog-assets/gui/questlog.png")) center/100% 100% no-repeat;image-rendering:pixelated;color:#4a321c;}
-.ql-list-close{position:absolute;right:112px;bottom:38px;width:108px;height:36px;border:0;background:transparent url("questlog-assets/gui/generated/button.png") center/100% 100% no-repeat;color:#3c2816;font:18px/36px var(--mono),monospace;image-rendering:pixelated;cursor:pointer;}
+.ql-list-screen{position:relative;width:1024px;height:512px;background:var(--ql-list-main-preview,var(--ql-atlas-questlog)) center/100% 100% no-repeat;image-rendering:pixelated;color:#4a321c;}
+.ql-list-close{position:absolute;right:112px;bottom:38px;width:108px;height:36px;border:0;background:transparent var(--ql-atlas-button) center/100% 100% no-repeat;color:#3c2816;font:18px/36px var(--mono),monospace;image-rendering:pixelated;cursor:pointer;}
 .ql-list-search{position:absolute;left:426px;top:102px;width:510px;height:44px;display:grid;grid-template-columns:auto 1fr 42px;align-items:center;gap:10px;font:34px/1 var(--mono),monospace;}
 .ql-list-search div{height:34px;border:4px solid #6a4725;background:#ead7b7;}
 .ql-list-search i{font-style:normal;text-align:center;font-size:28px;}
@@ -4286,10 +4286,10 @@ html[data-surface-texture="grain"] body[data-layout="workbench"] .workbench-shel
 .ql-list-row i{position:absolute;left:0;top:28px;width:48px;height:48px;display:grid;place-items:center;background:rgba(90,62,34,.22);font:14px/1 var(--mono),monospace;font-style:normal;}
 .ql-list-row span{position:absolute;left:72px;top:30px;font-size:34px;line-height:1;max-width:650px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .ql-list-row b{position:absolute;left:72px;top:62px;font:24px/1 var(--mono),monospace;color:#4ca65a;}
-.ql-list-row em{position:absolute;left:0;right:0;bottom:4px;height:18px;background:url("questlog-assets/gui/generated/big_hr.png") center/100% 100% no-repeat;image-rendering:pixelated;}
+.ql-list-row em{position:absolute;left:0;right:0;bottom:4px;height:18px;background:var(--ql-atlas-big_hr) center/100% 100% no-repeat;image-rendering:pixelated;}
 .ql-list-empty{padding:60px;text-align:center;font-size:30px;}
-.ql-list-bar{position:absolute;right:-4px;top:4px;width:32px;height:506px;background:url("questlog-assets/gui/generated/scrollbar_track_top.png") top/32px 2px no-repeat,url("questlog-assets/gui/generated/scrollbar_track_bottom.png") bottom/32px 2px no-repeat,url("questlog-assets/gui/generated/scrollbar_track.png") center/32px 2px repeat-y;}
-.ql-list-bar span{position:absolute;left:-12px;top:0;width:56px;height:72px;background:url("questlog-assets/gui/generated/scrollbar_thumb.png") center/100% 100% no-repeat;image-rendering:pixelated;}
+.ql-list-bar{position:absolute;right:-4px;top:4px;width:32px;height:506px;background:var(--ql-atlas-scrollbar_track_top) top/32px 2px no-repeat,var(--ql-atlas-scrollbar_track_bottom) bottom/32px 2px no-repeat,var(--ql-atlas-scrollbar_track) center/32px 2px repeat-y;}
+.ql-list-bar span{position:absolute;left:-12px;top:0;width:56px;height:72px;background:var(--ql-atlas-scrollbar_thumb) center/100% 100% no-repeat;image-rendering:pixelated;}
 .ql-list-tabs{position:absolute;left:188px;bottom:-102px;height:98px;display:flex;gap:6px;align-items:start;}
 .ql-list-tabs button{width:92px;height:98px;border:0;background:rgba(198,32,81,.9);border-left:4px solid #3d1220;border-right:4px solid #3d1220;border-bottom:4px solid #3d1220;cursor:pointer;}
 .ql-list-tabs button.active{background:rgba(214,35,88,.98);}
@@ -4306,10 +4306,10 @@ html[data-surface-texture="grain"] body[data-layout="workbench"] .workbench-shel
 .ql-preview-title-icon.ql-icon-tile{width:32px;height:32px;border:0;box-shadow:none;background-size:100% 100%;flex:0 0 auto;}
 .ql-preview-entry-icon{position:absolute;left:0;top:8px;width:32px;height:32px;}
 .ql-preview-detail-row i{display:none;}
-.ql-preview-actions button:hover,.ql-preview-actions button:focus-visible{background-image:url("questlog-assets/gui/generated/button.png");filter:brightness(.92);outline:0;}
-.ql-preview-primary-preview.long:hover,.ql-preview-primary-preview.long:focus-visible{background-image:url("questlog-assets/gui/generated/button_long.png");filter:brightness(.92);}
-.ql-list-close:hover,.ql-list-close:focus-visible{background-image:url("questlog-assets/gui/generated/button.png");filter:brightness(.92);outline:0;}
-.ql-list-search{left:424px;top:138px;width:252px;height:55px;display:block;background:url("questlog-assets/gui/generated/search_tab_expanded.png") center/100% 100% no-repeat;font:18px/1 var(--mono),monospace;image-rendering:pixelated;}
+.ql-preview-actions button:hover,.ql-preview-actions button:focus-visible{background-image:var(--ql-atlas-button);filter:brightness(.92);outline:0;}
+.ql-preview-primary-preview.long:hover,.ql-preview-primary-preview.long:focus-visible{background-image:var(--ql-atlas-button_long);filter:brightness(.92);}
+.ql-list-close:hover,.ql-list-close:focus-visible{background-image:var(--ql-atlas-button);filter:brightness(.92);outline:0;}
+.ql-list-search{left:424px;top:138px;width:252px;height:55px;display:block;background:var(--ql-atlas-search_tab_expanded) center/100% 100% no-repeat;font:18px/1 var(--mono),monospace;image-rendering:pixelated;}
 .ql-list-search span{position:absolute;left:34px;top:20px;color:#5b381f;text-shadow:1px 1px rgba(238,216,180,.9);}
 .ql-list-search div{position:absolute;left:112px;top:22px;width:112px;height:16px;border:0;background:rgba(235,215,181,.78);}
 .ql-list-search i{position:absolute;right:12px;top:18px;width:20px;height:20px;font-size:0;}
@@ -4324,22 +4324,22 @@ html[data-surface-texture="grain"] body[data-layout="workbench"] .workbench-shel
 .ql-list-row b{left:25px;top:17px;font:9px/1 var(--mono),monospace;}
 .ql-list-row em{left:-2px;right:auto;bottom:-5px;width:252px;height:9px;}
 .ql-list-empty{padding:54px 0;text-align:center;font-size:18px;}
-.ql-list-bar{right:-2px;top:0;width:28px;height:136px;background:url("questlog-assets/gui/generated/scrollbar_track_top.png") top center/16px 1px no-repeat,url("questlog-assets/gui/generated/scrollbar_track_bottom.png") bottom center/16px 1px no-repeat,url("questlog-assets/gui/generated/scrollbar_track.png") top center/16px 1px repeat-y;cursor:pointer;image-rendering:pixelated;}
-.ql-list-bar span{position:absolute;left:0;top:0;width:28px;height:36px;background:url("questlog-assets/gui/generated/scrollbar_thumb.png") center/100% 100% no-repeat;image-rendering:pixelated;cursor:grab;touch-action:none;}
+.ql-list-bar{right:-2px;top:0;width:28px;height:136px;background:var(--ql-atlas-scrollbar_track_top) top center/16px 1px no-repeat,var(--ql-atlas-scrollbar_track_bottom) bottom center/16px 1px no-repeat,var(--ql-atlas-scrollbar_track) top center/16px 1px repeat-y;cursor:pointer;image-rendering:pixelated;}
+.ql-list-bar span{position:absolute;left:0;top:0;width:28px;height:36px;background:var(--ql-atlas-scrollbar_thumb) center/100% 100% no-repeat;image-rendering:pixelated;cursor:grab;touch-action:none;}
 .ql-list-bar span:active{cursor:grabbing;}
 .ql-list-tabs{left:391px;top:340px;bottom:auto;height:39px;display:flex;gap:2px;align-items:start;}
 .ql-list-tabs button{position:relative;width:28px;height:29px;border:0;background:transparent!important;padding:0;overflow:visible;}
-.ql-list-tabs button::before{content:"";position:absolute;left:-13px;top:-5px;width:54px;height:32px;background:var(--ql-list-secondary-tab-preview,url("questlog-assets/gui/generated/tab_secondary.png")) center/100% 100% no-repeat;image-rendering:pixelated;}
+.ql-list-tabs button::before{content:"";position:absolute;left:-13px;top:-5px;width:54px;height:32px;background:var(--ql-list-secondary-tab-preview,var(--ql-atlas-tab_secondary)) center/100% 100% no-repeat;image-rendering:pixelated;}
 .ql-list-tabs button:not(.active)::before{left:-8px;top:-10px;}
-.ql-list-tabs button.primary::before{background-image:var(--ql-list-main-tab-preview,url("questlog-assets/gui/generated/tab_main.png"));}
-.ql-list-tabs button.active::before{height:39px;background-image:var(--ql-list-secondary-tab-active-preview,url("questlog-assets/gui/generated/tab_secondary_active.png"));}
-.ql-list-tabs button.primary.active::before{background-image:var(--ql-list-main-tab-active-preview,url("questlog-assets/gui/generated/tab_main_active.png"));}
+.ql-list-tabs button.primary::before{background-image:var(--ql-list-main-tab-preview,var(--ql-atlas-tab_main));}
+.ql-list-tabs button.active::before{height:39px;background-image:var(--ql-list-secondary-tab-active-preview,var(--ql-atlas-tab_secondary_active));}
+.ql-list-tabs button.primary.active::before{background-image:var(--ql-list-main-tab-active-preview,var(--ql-atlas-tab_main_active));}
 .ql-list-tab-icon{position:absolute;left:6px;top:3px;width:16px;height:16px;z-index:1;}
 .ql-list-tabs button:not(.active) .ql-list-tab-icon{left:11px;top:-2px;}
 
-.ql-preview-actions button:hover,.ql-preview-actions button:focus-visible{background-image:url("questlog-assets/gui/generated/button_hover.png");filter:none;outline:0;}
-.ql-preview-primary-preview.long:hover,.ql-preview-primary-preview.long:focus-visible{background-image:url("questlog-assets/gui/generated/button_long_hover.png");filter:none;}
-.ql-list-close:hover,.ql-list-close:focus-visible{background-image:url("questlog-assets/gui/generated/button_hover.png");filter:none;outline:0;}
+.ql-preview-actions button:hover,.ql-preview-actions button:focus-visible{background-image:var(--ql-atlas-button_hover);filter:none;outline:0;}
+.ql-preview-primary-preview.long:hover,.ql-preview-primary-preview.long:focus-visible{background-image:var(--ql-atlas-button_long_hover);filter:none;}
+.ql-list-close:hover,.ql-list-close:focus-visible{background-image:var(--ql-atlas-button_hover);filter:none;outline:0;}
 .ql-list-stage{min-width:2140px;min-height:1120px;}
 .ql-list-screen{transform:scale(2);transform-origin:center;}
 .ql-list-screen > div.ql-list-search{display:none;}
@@ -4349,19 +4349,19 @@ html[data-surface-texture="grain"] body[data-layout="workbench"] .workbench-shel
 .ql-preview-detail-row:hover{background:transparent;}
 .ql-preview-detail-row.active{background:transparent;border-color:transparent;}
 .ql-list-search{border:0;padding:0;cursor:pointer;}
-.ql-list-search.minimized{left:589px;top:139px;width:58px;height:55px;background:var(--ql-list-search-min-preview,url("questlog-assets/gui/generated/search_tab_minimized.png")) center/100% 100% no-repeat;}
+.ql-list-search.minimized{left:589px;top:139px;width:58px;height:55px;background:var(--ql-list-search-min-preview,var(--ql-atlas-search_tab_minimized)) center/100% 100% no-repeat;}
 .ql-list-search.minimized span,.ql-list-search.minimized input{display:none;}
-.ql-list-search.expanded{left:424px;top:138px;width:252px;height:55px;background:var(--ql-list-search-expanded-preview,url("questlog-assets/gui/generated/search_tab_expanded.png")) center/100% 100% no-repeat;}
+.ql-list-search.expanded{left:424px;top:138px;width:252px;height:55px;background:var(--ql-list-search-expanded-preview,var(--ql-atlas-search_tab_expanded)) center/100% 100% no-repeat;}
 .ql-list-search.expanded input{position:absolute;left:112px;top:22px;width:112px;height:16px;border:0;background:transparent;color:#3f2a18;font:10px/16px var(--mono),monospace;outline:0;padding:0 2px;}
 .ql-list-tool{position:absolute;width:26px;height:26px;border:0;padding:0;background:transparent center/100% 100% no-repeat;image-rendering:pixelated;cursor:pointer;z-index:2;}
-.ql-list-condense{left:429px;top:153px;background-image:var(--ql-list-condense-preview,url("questlog-assets/gui/generated/condense_button.png"));}
-.ql-list-condense.active{background-image:var(--ql-list-expand-preview,url("questlog-assets/gui/generated/expand_button.png"));}
-.ql-list-condense:hover{background-image:url("questlog-assets/gui/generated/condense_button_hover.png");}
-.ql-list-condense.active:hover{background-image:url("questlog-assets/gui/generated/expand_button_hover.png");}
-.ql-list-hide{left:411px;top:153px;background-image:var(--ql-list-visible-preview,url("questlog-assets/gui/generated/visible_button.png"));}
-.ql-list-hide.active{background-image:var(--ql-list-hidden-preview,url("questlog-assets/gui/generated/hidden_button.png"));}
-.ql-list-hide:hover{background-image:url("questlog-assets/gui/generated/visible_button_hover.png");}
-.ql-list-hide.active:hover{background-image:url("questlog-assets/gui/generated/hidden_button_hover.png");}
+.ql-list-condense{left:429px;top:153px;background-image:var(--ql-list-condense-preview,var(--ql-atlas-condense_button));}
+.ql-list-condense.active{background-image:var(--ql-list-expand-preview,var(--ql-atlas-expand_button));}
+.ql-list-condense:hover{background-image:var(--ql-atlas-condense_button_hover);}
+.ql-list-condense.active:hover{background-image:var(--ql-atlas-expand_button_hover);}
+.ql-list-hide{left:411px;top:153px;background-image:var(--ql-list-visible-preview,var(--ql-atlas-visible_button));}
+.ql-list-hide.active{background-image:var(--ql-list-hidden-preview,var(--ql-atlas-hidden_button));}
+.ql-list-hide:hover{background-image:var(--ql-atlas-visible_button_hover);}
+.ql-list-hide.active:hover{background-image:var(--ql-atlas-hidden_button_hover);}
 .ql-list-screen.condensed .ql-list-row{height:18px;}
 .ql-list-screen.condensed .ql-list-row .ql-list-row-icon{top:1px;}
 .ql-list-screen.condensed .ql-list-row span{top:5px;}
@@ -4381,8 +4381,8 @@ html[data-surface-texture="grain"] body[data-layout="workbench"] .workbench-shel
 .ql-list-screen > div.ql-list-search{display:none!important;}
 .ql-list-search{border:0;padding:0;cursor:pointer;font-size:0;filter:none;}
 .ql-list-search span,.ql-list-search i,.ql-list-search div{display:none!important;}
-.ql-list-search.minimized:hover,.ql-list-search.minimized:focus-visible{background-image:url("questlog-assets/gui/generated/search_tab_minimized_hover.png");outline:0;}
-.ql-list-search.expanded:hover,.ql-list-search.expanded:focus-visible{background-image:url("questlog-assets/gui/generated/search_tab_expanded_hover.png");outline:0;}
+.ql-list-search.minimized:hover,.ql-list-search.minimized:focus-visible{background-image:var(--ql-atlas-search_tab_minimized_hover);outline:0;}
+.ql-list-search.expanded:hover,.ql-list-search.expanded:focus-visible{background-image:var(--ql-atlas-search_tab_expanded_hover);outline:0;}
 .ql-list-search.expanded input{font-size:10px;line-height:16px;}
 .ql-list-tool:hover,.ql-list-tool:focus-visible{filter:brightness(1.08);outline:0;}
 .ql-list-row:hover,.ql-list-row:focus-visible{background:rgba(255,248,226,.18);outline:0;}
@@ -4409,8 +4409,8 @@ html[data-surface-texture="grain"] body[data-layout="workbench"] .workbench-shel
 .ql-preview-entry-icon.ql-icon-tile.placeholder{font-size:12px!important;line-height:32px!important;}
 .ql-list-tab-icon.ql-icon-tile.placeholder,.ql-list-row-icon.ql-icon-tile.placeholder{font-size:9px!important;line-height:16px!important;}
 .ql-preview-actions button,.ql-preview-primary-preview.long{background-repeat:no-repeat!important;background-size:100% 100%!important;background-position:center!important;image-rendering:pixelated;color:#4b371b;font-weight:400!important;text-shadow:none;}
-.ql-preview-actions button:hover,.ql-preview-actions button:focus-visible{background-image:url("questlog-assets/gui/generated/button_hover.png")!important;background-repeat:no-repeat!important;background-size:100% 100%!important;background-position:center!important;filter:none!important;outline:0;}
-.ql-preview-primary-preview.long:hover,.ql-preview-primary-preview.long:focus-visible{background-image:url("questlog-assets/gui/generated/button_long_hover.png")!important;background-repeat:no-repeat!important;background-size:100% 100%!important;background-position:center!important;filter:none!important;}
+.ql-preview-actions button:hover,.ql-preview-actions button:focus-visible{background-image:var(--ql-atlas-button_hover)!important;background-repeat:no-repeat!important;background-size:100% 100%!important;background-position:center!important;filter:none!important;outline:0;}
+.ql-preview-primary-preview.long:hover,.ql-preview-primary-preview.long:focus-visible{background-image:var(--ql-atlas-button_long_hover)!important;background-repeat:no-repeat!important;background-size:100% 100%!important;background-position:center!important;filter:none!important;}
 .ql-list-stage{min-width:100%;min-height:100%;padding:0;place-items:initial;overflow:hidden;}
 .ql-list-screen{position:absolute;left:calc(50% - 1232px);top:calc(50% - 673px);transform:scale(2)!important;transform-origin:top left!important;zoom:1!important;}
 .ql-list-search.minimized{left:589px;top:139px;width:58px;height:55px;}
@@ -4426,9 +4426,9 @@ html[data-surface-texture="grain"] body[data-layout="workbench"] .workbench-shel
 
 /* v3.0 Questlog preview comparison corrections */
 .ql-preview-actions button{-webkit-appearance:none!important;appearance:none!important;border:0!important;border-radius:0!important;background-color:transparent!important;background-repeat:no-repeat!important;background-size:100% 100%!important;background-position:center!important;image-rendering:pixelated;}
-.ql-preview-actions button.long{width:176px;background-image:url("questlog-assets/gui/generated/button_long.png")!important;font-size:15px;}
-.ql-preview-actions button:hover,.ql-preview-actions button:focus-visible{background-image:url("questlog-assets/gui/generated/button_hover.png"),url("questlog-assets/gui/generated/button.png")!important;background-repeat:no-repeat,no-repeat!important;background-size:100% 100%,100% 100%!important;background-position:center,center!important;background-color:transparent!important;}
-.ql-preview-actions button.long:hover,.ql-preview-actions button.long:focus-visible{background-image:url("questlog-assets/gui/generated/button_long_hover.png"),url("questlog-assets/gui/generated/button_long.png")!important;background-repeat:no-repeat,no-repeat!important;background-size:100% 100%,100% 100%!important;background-position:center,center!important;background-color:transparent!important;}
+.ql-preview-actions button.long{width:176px;background-image:var(--ql-atlas-button_long)!important;font-size:15px;}
+.ql-preview-actions button:hover,.ql-preview-actions button:focus-visible{background-image:var(--ql-atlas-button_hover),var(--ql-atlas-button)!important;background-repeat:no-repeat,no-repeat!important;background-size:100% 100%,100% 100%!important;background-position:center,center!important;background-color:transparent!important;}
+.ql-preview-actions button.long:hover,.ql-preview-actions button.long:focus-visible{background-image:var(--ql-atlas-button_long_hover),var(--ql-atlas-button_long)!important;background-repeat:no-repeat,no-repeat!important;background-size:100% 100%,100% 100%!important;background-position:center,center!important;background-color:transparent!important;}
 .ql-list-search.expanded input{width:112px;z-index:1;}
 .ql-list-search.expanded::after{content:"";position:absolute;right:0;top:0;width:58px;height:55px;z-index:2;pointer-events:none;}
 .ql-list-row.no-icon span{left:5px;max-width:218px;}
@@ -8458,33 +8458,33 @@ body.is-chapter-dragging{user-select:none;cursor:grabbing;}
 }
 .gui-studio-layout-main-panel,
 .gui-studio-final-quest{
-  background:transparent var(--gui-main-preview,url("questlog-assets/gui/generated/quest_detail_panel.png")) center/100% 100% no-repeat!important;
+  background:transparent var(--gui-main-preview,var(--ql-atlas-quest_detail_panel)) center/100% 100% no-repeat!important;
 }
 .gui-studio-layout-right-panel,
 .gui-studio-final-side{
-  background:transparent var(--gui-right-preview,url("questlog-assets/gui/generated/quest_detail_panel.png")) center/100% 100% no-repeat!important;
+  background:transparent var(--gui-right-preview,var(--ql-atlas-quest_detail_panel)) center/100% 100% no-repeat!important;
 }
 .gui-studio-layout-buttons button{
   border:0!important;
-  background:transparent var(--gui-button-preview,url("questlog-assets/gui/generated/button_long.png")) center/100% 100% no-repeat!important;
+  background:transparent var(--gui-button-preview,var(--ql-atlas-button_long)) center/100% 100% no-repeat!important;
   image-rendering:pixelated;
 }
 .gui-studio-layout-buttons button:first-child{
-  background-image:var(--gui-button-short-preview,url("questlog-assets/gui/generated/button.png"))!important;
+  background-image:var(--gui-button-short-preview,var(--ql-atlas-button))!important;
 }
 .gui-studio-layout-buttons button:hover,
 .gui-studio-layout-buttons button:focus-visible{
-  background-image:var(--gui-button-hover-preview,url("questlog-assets/gui/generated/button_long_hover.png"))!important;
+  background-image:var(--gui-button-hover-preview,var(--ql-atlas-button_long_hover))!important;
 }
 .gui-studio-layout-buttons button:first-child:hover,
 .gui-studio-layout-buttons button:first-child:focus-visible{
-  background-image:var(--gui-button-short-hover-preview,url("questlog-assets/gui/generated/button_hover.png"))!important;
+  background-image:var(--gui-button-short-hover-preview,var(--ql-atlas-button_hover))!important;
 }
 .gui-studio-badge-preview{
   width:28px;
   height:36px;
   border:0;
-  background:transparent var(--gui-badge-preview,url("questlog-assets/gui/generated/important.png")) center/100% 100% no-repeat;
+  background:transparent var(--gui-badge-preview,var(--ql-atlas-important)) center/100% 100% no-repeat;
   box-shadow:none;
   image-rendering:pixelated;
 }
@@ -12194,21 +12194,21 @@ body[data-layout="classic"] #liveJson.active{
 
 .gui-studio-sketch-redesign .gui-studio-layout-buttons button{
   border:0!important;
-  background:transparent var(--gui-button-preview,url("questlog-assets/gui/generated/button_long.png")) center/100% 100% no-repeat!important;
+  background:transparent var(--gui-button-preview,var(--ql-atlas-button_long)) center/100% 100% no-repeat!important;
   color:#4b371b!important;
   image-rendering:pixelated!important;
   box-shadow:none!important;
 }
 .gui-studio-sketch-redesign .gui-studio-layout-buttons button:hover,
 .gui-studio-sketch-redesign .gui-studio-layout-buttons button:focus-visible{
-  background:transparent var(--gui-button-hover-preview,url("questlog-assets/gui/generated/button_long_hover.png")) center/100% 100% no-repeat!important;
+  background:transparent var(--gui-button-hover-preview,var(--ql-atlas-button_long_hover)) center/100% 100% no-repeat!important;
 }
 .gui-studio-sketch-redesign .gui-studio-layout-buttons button:first-child{
-  background:transparent var(--gui-button-short-preview,url("questlog-assets/gui/generated/button.png")) center/100% 100% no-repeat!important;
+  background:transparent var(--gui-button-short-preview,var(--ql-atlas-button)) center/100% 100% no-repeat!important;
 }
 .gui-studio-sketch-redesign .gui-studio-layout-buttons button:first-child:hover,
 .gui-studio-sketch-redesign .gui-studio-layout-buttons button:first-child:focus-visible{
-  background:transparent var(--gui-button-short-hover-preview,url("questlog-assets/gui/generated/button_hover.png")) center/100% 100% no-repeat!important;
+  background:transparent var(--gui-button-short-hover-preview,var(--ql-atlas-button_hover)) center/100% 100% no-repeat!important;
 }
 .gui-studio-modal[data-mode="layout"] .gui-studio-sketch-redesign{
   --layout-panel:color-mix(in srgb,var(--sf) 84%,#000 16%)!important;
@@ -12319,7 +12319,7 @@ body[data-layout="classic"] #liveJson.active{
   width:calc(252 / 275 * 100%)!important;
   height:calc(9 / 166 * 100%)!important;
   margin:0!important;
-  background:transparent url("questlog-assets/gui/generated/small_hr.png") center/100% 100% no-repeat!important;
+  background:transparent var(--ql-atlas-small_hr) center/100% 100% no-repeat!important;
   image-rendering:pixelated!important;
 }
 .gui-studio-sketch-redesign .gui-studio-layout-right-panel>i{
@@ -12328,7 +12328,7 @@ body[data-layout="classic"] #liveJson.active{
   width:calc(140 / 170 * 100%)!important;
   height:calc(9 / 166 * 100%)!important;
   margin:0!important;
-  background:transparent url("questlog-assets/gui/generated/panel_hr.png") center/100% 100% no-repeat!important;
+  background:transparent var(--ql-atlas-panel_hr) center/100% 100% no-repeat!important;
   image-rendering:pixelated!important;
 }
 .gui-studio-sketch-redesign .gui-studio-layout-canvas > .gui-studio-entry-list{
@@ -12395,21 +12395,21 @@ body[data-layout="classic"] #liveJson.active{
   white-space:nowrap!important;
   overflow:hidden!important;
   text-overflow:ellipsis!important;
-  background:transparent var(--gui-button-preview,url("questlog-assets/gui/generated/button_long.png")) center/100% 100% no-repeat!important;
+  background:transparent var(--gui-button-preview,var(--ql-atlas-button_long)) center/100% 100% no-repeat!important;
 }
 .gui-studio-sketch-redesign .gui-studio-layout-button-piece.gui-studio-live-details,
 .gui-studio-sketch-redesign .gui-studio-layout-button-piece.gui-studio-live-back{
-  background:transparent var(--gui-button-short-preview,url("questlog-assets/gui/generated/button.png")) center/100% 100% no-repeat!important;
+  background:transparent var(--gui-button-short-preview,var(--ql-atlas-button)) center/100% 100% no-repeat!important;
 }
 .gui-studio-sketch-redesign .gui-studio-layout-button-piece:hover,
 .gui-studio-sketch-redesign .gui-studio-layout-button-piece:focus-visible{
-  background:transparent var(--gui-button-hover-preview,url("questlog-assets/gui/generated/button_long_hover.png")) center/100% 100% no-repeat!important;
+  background:transparent var(--gui-button-hover-preview,var(--ql-atlas-button_long_hover)) center/100% 100% no-repeat!important;
 }
 .gui-studio-sketch-redesign .gui-studio-layout-button-piece.gui-studio-live-details:hover,
 .gui-studio-sketch-redesign .gui-studio-layout-button-piece.gui-studio-live-details:focus-visible,
 .gui-studio-sketch-redesign .gui-studio-layout-button-piece.gui-studio-live-back:hover,
 .gui-studio-sketch-redesign .gui-studio-layout-button-piece.gui-studio-live-back:focus-visible{
-  background:transparent var(--gui-button-short-hover-preview,url("questlog-assets/gui/generated/button_hover.png")) center/100% 100% no-repeat!important;
+  background:transparent var(--gui-button-short-hover-preview,var(--ql-atlas-button_hover)) center/100% 100% no-repeat!important;
 }
 .gui-studio-sketch-redesign .gui-studio-layout-canvas,
 .gui-studio-final-canvas{
@@ -14773,3 +14773,17 @@ html.questlog-booting body{visibility:hidden}
 
 /* Apply theme colors immediately; preserve normal transitions afterward. */
 html.theme-switching,html.theme-switching *,html.theme-switching *::before,html.theme-switching *::after{transition:none!important}
+
+/* QuestDetails CONTENT_X=18, CONTENT_Y=36, 2 CSS pixels per GUI unit. */
+.ql-preview-scroll-area{left:36px!important;top:72px!important;width:calc(var(--ql-left-w) * 2 - 76px)!important;height:calc((var(--ql-panel-h) - 67px) * 2)!important}
+.ql-preview-detail-list{left:36px!important;top:72px!important;width:calc(var(--ql-right-w) * 2 - 72px)!important;height:calc((var(--ql-panel-h) - 68px) * 2)!important}
+/* Project defaults and global texture imports share a responsive settings flow. */
+#preferencesProject{min-width:0}
+#preferencesProject .preferences-project-grid{grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:16px;align-items:start;margin-top:16px}
+#guiAtlasImports{margin-top:24px;padding-top:20px;border-top:1px solid var(--bd);min-width:0}
+#guiAtlasImports h3{margin:0 0 8px;font:600 15px var(--font);color:var(--tx)}
+#guiAtlasImports>p{margin:0 0 16px;color:var(--mu);font-size:12px;line-height:1.6;max-width:70ch}
+.gui-atlas-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:12px}
+.gui-atlas-card{display:flex;flex-direction:column;gap:8px;min-width:0;padding:16px;border:1px solid var(--bd);border-radius:var(--r2);background:var(--sf2);color:var(--tx)}
+.gui-atlas-card strong{font-size:13px}.gui-atlas-card small,.gui-atlas-status{font-size:12px;color:var(--mu);overflow-wrap:anywhere;line-height:1.5}
+.gui-atlas-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto;padding-top:8px}
