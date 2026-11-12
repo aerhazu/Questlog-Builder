@@ -1,0 +1,315 @@
+{
+  "schema": 1,
+  "registry": {
+    "src": "mod-id-packs.js",
+    "version": "3.0-sounds-modsupport-export-2"
+  },
+  "packs": [
+    {
+      "src": "mod-id-packs/create.js",
+      "version": "3.0"
+    },
+    {
+      "src": "mod-id-packs/farmersdelight.js",
+      "version": "3.0"
+    },
+    {
+      "src": "mod-id-packs/farm_and_charm.js",
+      "version": "3.0"
+    },
+    {
+      "src": "mod-id-packs/supplementaries.js",
+      "version": "3.0"
+    },
+    {
+      "src": "mod-id-packs/quark.js",
+      "version": "3.0"
+    },
+    {
+      "src": "mod-id-packs/cataclysm.js",
+      "version": "3.0"
+    },
+    {
+      "src": "mod-id-packs/deeperdarker.js",
+      "version": "3.0"
+    },
+    {
+      "src": "mod-id-packs/alexscaves.js",
+      "version": "3.0-mod-support-target-audit-1"
+    },
+    {
+      "src": "mod-id-packs/alexsmobs.js",
+      "version": "3.0-sounds-modsupport-export-2"
+    },
+    {
+      "src": "mod-id-packs/starcatcher.js",
+      "version": "3.0"
+    },
+    {
+      "src": "mod-id-packs/regions_unexplored.js",
+      "version": "3.0"
+    },
+    {
+      "src": "mod-id-packs/biomeswevegone.js",
+      "version": "3.0-mod-support-target-audit-1"
+    },
+    {
+      "src": "mod-id-packs/biomesoplenty.js",
+      "version": "3.0"
+    },
+    {
+      "src": "mod-id-packs/netherexp.js",
+      "version": "3.0"
+    },
+    {
+      "src": "mod-id-packs/betternether.js",
+      "version": "3.0"
+    },
+    {
+      "src": "mod-id-packs/betterend.js",
+      "version": "3.0"
+    },
+    {
+      "src": "mod-id-packs/endrem.js",
+      "version": "3.0"
+    },
+    {
+      "src": "mod-id-packs/darkerdepths.js",
+      "version": "3.0"
+    },
+    {
+      "src": "mod-id-packs/galosphere.js",
+      "version": "3.0"
+    },
+    {
+      "src": "mod-id-packs/comforts.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/natures_compass.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/sleep_tight.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/additional_additions.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/ecologics.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/better_archeology.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/natures_spirit.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/exposure.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/wayfinder.js",
+      "version": "3.0-mod-support-batch-wayfinder-1"
+    },
+    {
+      "src": "mod-id-packs/spelunkers_charm.js",
+      "version": "3.0-mod-support-batch-wayfinder-1"
+    },
+    {
+      "src": "mod-id-packs/whaleborne.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/immersive_enchanting.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/selfexpression.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/tide.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/aquaculture_2.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/handcrafted.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/sophisticated_backpacks.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/securitycraft.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/relics.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/immersive_aircraft.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/macaws_furniture.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/macaws_holidays.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/macaws_windows.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/macaws_roofs.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/macaws_doors.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/macaws_fences.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/macaws_paths.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/macaws_lights.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/macaws_stairs.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/macaws_trapdoors.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/macaws_bridges.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/create_crafts_and_additions.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/create_aeronautics.js",
+      "version": "3.0-mod-support-batch-create-addons-1"
+    },
+    {
+      "src": "mod-id-packs/create_aeroworks.js",
+      "version": "3.0-mod-support-batch-create-addons-1"
+    },
+    {
+      "src": "mod-id-packs/mekanism.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/immersive_engineering.js",
+      "version": "3.0-mod-support-version-audit-1"
+    },
+    {
+      "src": "mod-id-packs/incision.js",
+      "version": "3.0-mod-support-pending-magic-1"
+    },
+    {
+      "src": "mod-id-packs/irons_spells.js",
+      "version": "3.0-mod-support-pending-magic-1"
+    },
+    {
+      "src": "mod-id-packs/ars_nouveau.js",
+      "version": "3.0-mod-support-pending-magic-1"
+    },
+    {
+      "src": "mod-id-packs/mystical_agriculture.js",
+      "version": "3.0-mod-support-pending-magic-1"
+    },
+    {
+      "src": "mod-id-packs/voidscape.js",
+      "version": "3.0-mod-support-pending-magic-1"
+    },
+    {
+      "src": "mod-id-packs/aether.js",
+      "version": "3.0-mod-support-dimension-mobs-1"
+    },
+    {
+      "src": "mod-id-packs/mowzies_mobs.js",
+      "version": "3.0-mod-support-dimension-mobs-1"
+    },
+    {
+      "src": "mod-id-packs/undergarden.js",
+      "version": "3.0-mod-support-dimension-mobs-1"
+    },
+    {
+      "src": "mod-id-packs/ad_astra.js",
+      "version": "3.0-mod-support-1201-space-end-1"
+    },
+    {
+      "src": "mod-id-packs/mofus_better_end.js",
+      "version": "3.0-mod-support-1201-space-end-1"
+    },
+    {
+      "src": "mod-id-packs/blue_skies.js",
+      "version": "3.0-mod-support-blue-skies-deep-void-1"
+    },
+    {
+      "src": "mod-id-packs/deep_void.js",
+      "version": "3.0-mod-support-blue-skies-deep-void-1"
+    },
+    {
+      "src": "mod-id-packs/bumblezone.js",
+      "version": "3.0-mod-support-bumblezone-enderscape-1"
+    },
+    {
+      "src": "mod-id-packs/enderscape.js",
+      "version": "3.0-mod-support-bumblezone-enderscape-1"
+    },
+    {
+      "src": "mod-id-packs/twilight_forest.js",
+      "version": "3.0-mod-support-final-manual-source-1"
+    },
+    {
+      "src": "mod-id-packs/apotheosis.js",
+      "version": "3.0-mod-support-final-manual-source-1"
+    },
+    {
+      "src": "mod-id-packs/ars_elemental.js",
+      "version": "3.0-mod-support-final-manual-source-1"
+    },
+    {
+      "src": "mod-id-packs/abyss_ii.js",
+      "version": "3.0-mod-support-final-manual-source-1"
+    }
+  ],
+  "afterPacks": [
+    {
+      "src": "minecraft-texture-index.js",
+      "version": "3.0-minecraft-textures-1"
+    },
+    {
+      "src": "minecraft-entity-texture-index.js",
+      "version": "3.0-entity-textures-1"
+    }
+  ],
+  "app": {
+    "src": "app.js",
+    "version": "4.03-brand-import-1"
+  }
+}
