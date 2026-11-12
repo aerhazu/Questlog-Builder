@@ -63,6 +63,7 @@ test('loader keeps ordering and supports both generated and legacy cache markers
   const context = vm.createContext({ window, URL, console, Event: class {},
     fetch: async () => ({ ok: true, json: async () => manifest }),
     document: {
+      documentElement: { classList: { remove() {} } },
       currentScript: { src: 'http://localhost/website%20files/mod-id-packs-loader.js' },
       createElement: () => ({}),
       head: { appendChild(script) {

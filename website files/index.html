@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="netherblood"><head>
+<html class="questlog-booting" lang="en" data-theme="netherblood"><head>
   <meta charset="UTF-8">
+  <style>html.questlog-booting body{visibility:hidden}</style>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Questlog JSON Editor</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23131210'/%3E%3Crect x='7' y='7' width='7' height='7' rx='1' fill='%23d4924a'/%3E%3Crect x='18' y='7' width='7' height='7' rx='1' fill='%23d4924a'/%3E%3Crect x='7' y='18' width='7' height='7' rx='1' fill='%23d4924a'/%3E%3Crect x='18' y='18' width='7' height='7' rx='1' fill='%23e6e2d6'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=ddddc818b1124f02">
+  <link rel="stylesheet" href="style.css?v=71e0122d0e030a79">
 
 </head>
 <body>
+<noscript><style>html.questlog-booting body{visibility:visible}</style>Enable JavaScript to use the editor.</noscript>
 
 <!-- TOP BAR -->
 <div class="topbar">
@@ -1402,9 +1404,9 @@
 <script src="jszip.min.js?v=acc7e41455a80765"></script>
 <script src="minecraft-ids.js?v=a87133079ed9aa8c"></script>
 <script src="minecraft-sounds.js?v=fe91516d734c21eb"></script>
-<script src="mod-id-packs-loader.js?v=5876e76dfc7417dd"></script>
+<script onerror="document.documentElement.classList.remove('questlog-booting')" src="mod-id-packs-loader.js?v=455229a2a8c96c98"></script>
 <script>
-  window.QUESTLOG_HTML_VERSION='4.3.1';
+  window.QUESTLOG_HTML_VERSION='4.4.0';
   function checkQuestlogVersion(){
     setTimeout(function(){
     if(window.QUESTLOG_APP_VERSION===window.QUESTLOG_HTML_VERSION)return;

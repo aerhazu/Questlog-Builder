@@ -1,14 +1,31 @@
 # Website versions and release guide
 
-The current website release is **4.3.1**. The authoritative value is
-`websiteVersion` in `website files/mod-id-packs-manifest.json`. This normalizes
-the previous `4.03-*` build labels; it does not change Minecraft or mod versions.
+The current website release is **4.4.0**. The authoritative value is
+`websiteVersion` in `website files/mod-id-packs-manifest.json`. Release 4.3.1
+normalized the previous `4.03-*` build labels. Website releases do not change
+Minecraft or mod versions.
+
+## This push: 4.4.0
+
+This is a feature release covering startup layout stability, JSON highlighting,
+sidebar multi-selection/group movement, active rename/duplicate selection,
+responsive Mod Support views, and source-confirmed QuestLog 3.5.4 features.
+It also includes quest flag tooltips, project undo/redo shortcuts, theme-switch
+color fixes, and the Mod Support view-selector overlap fix.
+
+The compatibility target inspected is **QuestLog 3.5.4, Fabric, Minecraft 1.21.1**.
+The Mod Support target remains independent, and existing Minecraft 1.20.1
+suggestion packs remain available. Older Minecraft/QuestLog versions are not
+guaranteed to understand newly added objective/reward types or quest flags.
+See [CHANGELOG.md](CHANGELOG.md) for release notes and
+[EDITOR-UPDATE-NOTES.md](EDITOR-UPDATE-NOTES.md) for source evidence, test results,
+and known limits. No saved-data schema or resource-pack format bump is included.
 
 ## Normal update workflow
 
 1. Edit the website, mod ID packs, or texture files.
 2. For a published release, set `websiteVersion` in the manifest. Use
-   `MAJOR.MINOR.PATCH`: `4.3.2` for fixes, `4.4.0` for features, `5.0.0` for
+   `MAJOR.MINOR.PATCH`: `4.4.1` for fixes, `4.5.0` for features, `5.0.0` for
    breaking website behavior. Local edits can keep the same release number.
 3. Run from the repository root (Node.js required, no packages to install):
 
@@ -30,7 +47,7 @@ Editing the release number alone does not refresh asset bytes: rerun the command
 
 | Value / location | Current value or example | When to change it | Effect |
 | --- | --- | --- | --- |
-| `websiteVersion`, manifest | `4.3.1` | Publishing a website release | Supplies the app version, Settings version, export layout's app version, and current changelog selection. |
+| `websiteVersion`, manifest | `4.4.0` | Publishing a website release | Supplies the app version, Settings version, export layout's app version, and current changelog selection. |
 | `cacheRevision`, manifest script entries | Generated 16-character hash | Automatically, when that JS file changes | Adds `?v=<hash>` to that script URL so the browser requests changed content. |
 | `?v=...`, bootstrap JS and CSS in `index.html` | Generated hash | Automatically, when those files change | Refreshes the stylesheet, loader, error guard, vanilla ID/sound scripts, and bundled JSZip independently. |
 | `textures.cacheRevision`, enabled mod entries | Generated folder hash | Automatically, when files are added, changed, or removed in that configured mod folder | Adds `?v=<hash>` to mod PNG requests. Does not change filenames or IDs. |
@@ -51,7 +68,20 @@ Editing the release number alone does not refresh asset bytes: rerun the command
 | Historical changelog entries | `3.01`, `3.0`, `2.8`, etc. | Correcting or adding release notes | Historical labels remain historical. Add notes for releases; don't renumber old entries. |
 | `wrangler.jsonc` `compatibility_date` | `2026-05-18` | Deliberately updating hosting runtime behavior | A hosting compatibility date, not the website's release date. |
 
-## Adding or updating a mod
+## Cloudflare Workers deployment
+
+For Workers Builds connected to Git, use the repository root as the build root
+(clear `website files` from that setting). Set the build command to
+`node tools/update-website-assets.cjs` and the deploy command to
+`npx wrangler deploy`. The existing `wrangler.jsonc` selects `website files` as
+the published assets directory. Push the source, tools, and new assets together;
+Cloudflare generates cache revisions before deployment. Its generated files are
+not committed back to Git. Run the same update command locally before previews.
+
+The build root and assets directory serve different purposes: running from
+`website files` makes Node search for the nonexistent `website files/tools/`.
+
+## Mod pack maintenance
 
 Add its script under `packs` in the manifest using only its path:
 

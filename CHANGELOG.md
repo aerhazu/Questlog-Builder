@@ -1,5 +1,33 @@
 ﻿# Changelog
 
+## v4.4.0 — Editor improvements and QuestLog 3.5.4 support
+
+### Added
+
+- JSON live preview syntax highlighting with theme-aware colors, unchanged copy/export output, and a plain-text fallback during direct editing or for large documents.
+- Sidebar multi-selection with Shift ranges, Ctrl/Cmd toggles, keyboard selection, and group quest/chapter movement with updated ordering.
+- Compact, card, and dense Mod Support views with saved view preferences, categories, and Minecraft versions.
+- Source-confirmed QuestLog 3.5.4 support for AND and Origins objectives, choice/random reward containers, and repeatable/global quest flags.
+- Hover tips for repeatable/global flags and project undo/redo keyboard shortcuts outside text fields, preserving existing Canvas and GUI Studio handling.
+- Editor integration checks and regression tests; source evidence and limitations in `EDITOR-UPDATE-NOTES.md`.
+
+### Fixed
+
+- Prevented the legacy static layout from flashing before the saved layout initializes.
+- Renaming activates the selected file and retains inline input focus; duplication activates the new copy.
+- Modifier selection and inline rename keep the sidebar available on narrow screens.
+- Corrected experience rewards to export `levels`, while accepting legacy `level` data.
+- Preserved additional same-type objective fields when synchronizing form edits.
+- Fixed stale/inverted JSON highlight colors after light/dark switching and removed staggered color transitions during theme changes.
+- Moved the Mod Support view selector into its toolbar to prevent overlap with the scrolling list.
+
+### Compatibility and verification
+
+- Inspected the supplied Fabric 1.21.1 QuestLog 3.5.4 source JAR; in-game behavior has not been runtime-tested.
+- Nested choice/random rewards use JSON array editors. Structured matcher editing still requires raw JSON.
+- Ten Node regression tests pass. Browser integration, autocomplete, and vanilla-preview checks passed; the final theme-transition and toolbar-overlap follow-ups still need visual browser verification.
+- Existing fonts, assets, sounds, deployment structure, and historical release labels are retained.
+
 ## v4.3.1
 
 - Centralized the website release in the manifest's `websiteVersion` field.

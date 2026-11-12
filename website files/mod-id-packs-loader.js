@@ -31,6 +31,7 @@
   }
 
   function showError(error) {
+    document.documentElement.classList.remove('questlog-booting');
     console.error('[Questlog loader]', error);
     var panel = document.createElement('div');
     panel.setAttribute('role', 'alert');
@@ -69,6 +70,7 @@
     var after = Array.isArray(manifest.afterPacks) ? manifest.afterPacks : [];
     for (var j = 0; j < after.length; j++) await loadScript(after[j]);
     await loadScript(manifest.app);
+    document.documentElement.classList.remove('questlog-booting');
     window.QUESTLOG_ASSETS_LOADED = true;
     window.dispatchEvent(new Event('questlog-assets-loaded'));
   }

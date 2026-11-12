@@ -539,6 +539,8 @@ function toggleWebsiteTheme(){
   applyPersonalization(prefs);
 }
 function applyTheme(t){
+  const themeRoot=document.documentElement;
+  themeRoot.classList.add('theme-switching');
   cTheme=THEME_NAMES[t]?t:(REMOVED_THEME_FALLBACKS[t]||DEFAULT_DARK_THEME_ID);
   document.documentElement.setAttribute('data-theme',cTheme);
   const light=LIGHT_THEME_IDS.has(cTheme);
@@ -552,15 +554,112 @@ function applyTheme(t){
   if(darkSelect)darkSelect.value=chosenTheme('dark');
   updateThemeToggle();
   if(typeof refreshReactiveAmbientLight==='function')refreshReactiveAmbientLight();
+  // Commit theme colors together before restoring normal interaction transitions.
+  void themeRoot.offsetWidth;
+  requestAnimationFrame(()=>themeRoot.classList.remove('theme-switching'));
 }
 applyTheme(cTheme);
+
+
+
+async function runEditorImprovementsSelfTest(){
+ // Test only: allow existing sidebar visibility transitions to settle.
+ await new Promise(resolve=>setTimeout(resolve,300));
+ const before={quests,chapters,currentFile,mode,listSort,fileMeta,pane:document.body.dataset.pane,openEditor:window.__qlPaneOpenEditor};const checks={};window.__qlPaneOpenEditor=()=>{};document.body.dataset.pane='files';
+ try{
+ quests={'a.json':{title:'A',chapter:'one',objectives:[{type:'questlog:read'}],sort_order:0},'b.json':{title:'B',chapter:'one',objectives:[{type:'questlog:read'}],sort_order:1},'c.json':{title:'C',chapter:'two',objectives:[{type:'questlog:read'}],sort_order:0}};
+ chapters={'one.json':{name:'One',order:0},'two.json':{name:'Two',order:1}};listSort='order';mode='quest';currentFile='a.json';renderFileListNow();renderMain();
+ const clickRow=(name,options={})=>[...document.querySelectorAll('#fileList .fi')].find(r=>r.dataset.fileName===name).dispatchEvent(new MouseEvent('click',{bubbles:true,...options}));clickRow('a.json');clickRow('b.json',{ctrlKey:true});checks.ctrlSelection=sidebarSelection.size===2;clickRow('c.json',{shiftKey:true});checks.rangeSelection=sidebarSelection.has(sidebarKey('quest','c.json'));sidebarSelection.clear();
+ const original=JSON.stringify(quests['a.json']);duplicateFile('a.json','quest');checks.duplicateActive=currentFile==='a_copy.json';checks.originalUnchanged=JSON.stringify(quests['a.json'])===original;
+ renderFileListNow();const row=[...document.querySelectorAll('#fileList .fi')].find(r=>r.dataset.fileName==='b.json');startRename(row,'b.json','quest');checks.renameActive=currentFile==='b.json';checks.renameFocused=document.activeElement?.classList.contains('fi-name-input');document.activeElement?.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}));
+ sidebarSelection.clear();['a.json','b.json'].forEach(n=>sidebarSelection.add(sidebarKey('quest',n)));moveInOrder('quest','a.json','c.json',true);checks.groupOrder=JSON.stringify(orderedGroup('quest','two.json'))===JSON.stringify(['c.json','a.json','b.json']);checks.sourceRenumbered=orderedGroup('quest','one.json').every((n,i)=>quests[n].sort_order===i);
+ const host=document.createElement('div');host.innerHTML=wrapOC({type:'questlog:and',objectives:[{type:'questlog:origin',origin:'origins:avian'}]},0,false,'obj');const objective=readOC(host.firstElementChild);checks.andOriginRoundTrip=objective.type==='questlog:and'&&objective.objectives[0].origin==='origins:avian';
+ const reward={type:'questlog:experience',experience:5,level:true};finR(reward);checks.levelsExport=reward.levels===true&&!('level' in reward);
+ const html=highlightJsonText('{"key":"<script>","n":2,"b":true,"x":null}');checks.highlightEscapes=html.includes('&lt;script&gt;')&&!html.includes('<script>');checks.highlightKinds=['key','string','number','boolean','null'].every(k=>html.includes('json-'+k));
+ const issues=[];validateReward({type:'questlog:random',roll_count:1,entries:[{weight:1,reward:{type:'questlog:experience',experience:5}}]},issues,'test.json','quest','rewards');checks.randomValidation=!issues.some(i=>i.level==='error'||i.severity==='error');
+ writeExportAtlasSelfTestResult(Object.values(checks).every(Boolean)?'passed':'failed',{test:'editor-improvements',checks});
+ }catch(error){writeExportAtlasSelfTestResult('error',{message:error.message,stack:error.stack,checks});}
+ finally{window.__qlPaneOpenEditor=before.openEditor;document.body.dataset.pane=before.pane;({quests,chapters,currentFile,mode,listSort,fileMeta}=before);sidebarSelection.clear();renderFileList();renderMain();}
+}
+
+// Sidebar selection is transient; the active editor remains currentFile/mode.
+const sidebarSelection=new Set();let sidebarAnchor=null;
+const sidebarKey=(kind,name)=>JSON.stringify([kind,name]);
+function sidebarGroup(kind,name){
+ if(!sidebarSelection.has(sidebarKey(kind,name)))return [name];
+ const data=kind==='quest'?quests:chapters;
+ return sortFiles(Object.keys(data),kind).filter(n=>sidebarSelection.has(sidebarKey(kind,n)));
+}
+function paintSidebarSelection(){
+ document.querySelectorAll('#fileList .fi').forEach(row=>{
+ const key=sidebarKey(row.dataset.kind,row.dataset.fileName);
+ row.classList.toggle('multi-selected',sidebarSelection.has(key));row.setAttribute('aria-selected',String(sidebarSelection.has(key)));row.tabIndex=0;row.setAttribute('role','option');
+ });
+}
+function moveSidebarGroup(kind,names,target,after,chapter){
+ if(target&&names.includes(target))return false;
+ if(target&&listSort!=='order'){showMsg('Choose Quest order to reorder.',false);return false;}
+ syncVisibleStateForHistory();pushHistorySnapshot();
+ const oldGroups=new Set(names.map(n=>questBoundCh(n)||null));
+ const destination=kind==='quest'?(target?questBoundCh(target)||null:chapter):null;
+ if(kind==='quest')names.forEach(n=>{if(destination)quests[n].chapter=chapterIdFor(destination);else delete quests[n].chapter;touchFile(kind,n);});
+ const ordered=orderedGroup(kind,destination).filter(n=>!names.includes(n));
+ let at=target?ordered.indexOf(target)+(after?1:0):ordered.length;
+ ordered.splice(Math.max(0,at),0,...names);renumberOrder(kind,ordered);
+ if(kind==='quest')oldGroups.forEach(group=>{if(group!==destination)renumberOrder(kind,orderedGroup(kind,group));});
+ renderFileList();renderMain();scheduleAutosave();return true;
+}
+function highlightJsonText(text){
+ const token=/"(?:\\.|[^"\\])*"(?=\s*:)|"(?:\\.|[^"\\])*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\b(?:true|false|null)\b/g;
+ let html='',at=0;for(const match of text.matchAll(token)){
+ html+=esc(text.slice(at,match.index));const value=match[0];
+ const kind=value[0]==='"'?(/^\s*:/.test(text.slice(match.index+value.length))?'key':'string'):value==='null'?'null':/true|false/.test(value)?'boolean':'number';
+ html+=`<span class="json-${kind}">${esc(value)}</span>`;at=match.index+value.length;
+ }return html+esc(text.slice(at));
+}
+function initEditorImprovements(){
+ document.addEventListener('keydown',event=>{
+  if(event.defaultPrevented||!(event.ctrlKey||event.metaKey)||event.altKey)return;
+  if(event.target.closest?.('input,textarea,select,[contenteditable="true"]'))return;
+  if(guiStudioModalOpen()||document.body.dataset.layout==='canvas')return;
+  const key=event.key.toLowerCase();
+  if(key!=='z'&&key!=='y')return;
+  event.preventDefault();
+  if(key==='y'||event.shiftKey)redoWorkbenchOrProject();else undoWorkbenchOrProject();
+ });
+ const list=$('#fileList');list.setAttribute('role','listbox');list.setAttribute('aria-label','Quest and chapter files');list.setAttribute('aria-multiselectable','true');
+ list.addEventListener('click',e=>{
+ const row=e.target.closest('.fi');if(!row||e.target.closest('button,input,textarea'))return;
+ if(Date.now()-lastSidebarDragEnd<450)return;
+ const key=sidebarKey(row.dataset.kind,row.dataset.fileName);
+ if(e.shiftKey&&sidebarAnchor){const rows=[...list.querySelectorAll('.fi')].filter(r=>r.getClientRects().length);const keys=rows.map(r=>sidebarKey(r.dataset.kind,r.dataset.fileName));const a=keys.indexOf(sidebarAnchor),b=keys.indexOf(key);if(a>=0){if(!e.ctrlKey&&!e.metaKey)sidebarSelection.clear();keys.slice(Math.min(a,b),Math.max(a,b)+1).forEach(k=>sidebarSelection.add(k));}}
+ else if(e.ctrlKey||e.metaKey){if(sidebarSelection.has(key))sidebarSelection.delete(key);else sidebarSelection.add(key);sidebarAnchor=key;}
+ else {sidebarSelection.clear();sidebarSelection.add(key);sidebarAnchor=key;}
+ paintSidebarSelection();
+ if(e.detail<2){e.preventDefault();e.stopImmediatePropagation();selectFile(row.dataset.fileName,row.dataset.kind,undefined,{fast:true,keepPane:e.ctrlKey||e.metaKey||e.shiftKey});paintSidebarSelection();}
+ },true);
+ list.addEventListener('keydown',e=>{if(e.target.matches('input,textarea'))return;const row=e.target.closest('.fi');if(e.key==='Escape'){sidebarSelection.clear();paintSidebarSelection();}if(row&&(e.key==='Enter'||e.key===' ')){e.preventDefault();row.click();}if(row&&e.key==='F2'){e.preventDefault();startRename(row,row.dataset.fileName,row.dataset.kind);}});
+ new MutationObserver(paintSidebarSelection).observe(list,{childList:true,subtree:true});
+ const ta=$('#liveJson'),pre=document.createElement('pre');pre.className='json-highlight';pre.setAttribute('aria-hidden','true');ta.parentElement.appendChild(pre);
+ let last=null;
+ const draw=()=>{const cs=getComputedStyle(ta);['font','lineHeight','letterSpacing','padding','boxSizing','whiteSpace','wordBreak','overflowWrap','tabSize','borderRadius'].forEach(k=>pre.style[k]=cs[k]);pre.style.width=ta.offsetWidth+'px';pre.style.height=ta.offsetHeight+'px';pre.style.left=ta.offsetLeft+'px';pre.style.top=ta.offsetTop+'px';pre.style.transition='none';pre.style.backgroundColor='var(--bg)';let bgColor=getComputedStyle(pre).backgroundColor;for(let node=ta.parentElement;node&&(bgColor==='transparent'||bgColor==='rgba(0, 0, 0, 0)');node=node.parentElement)bgColor=getComputedStyle(node).backgroundColor;pre.style.background=bgColor;const bg=bgColor.match(/[\d.]+/g)||[20,20,20];const light=Number(bg[0])+Number(bg[1])+Number(bg[2])>450;pre.classList.toggle('json-light',light);pre.style.background=`color-mix(in srgb,${bgColor} 12%,${light?'#ffffff':'#101820'})`;pre.hidden=ta.offsetWidth===0||document.activeElement===ta||ta.value.length>500000;if(last!==ta.value){last=ta.value;if(last.length>500000)pre.textContent='';else pre.innerHTML=highlightJsonText(last)+'\n';}pre.scrollTop=ta.scrollTop;pre.scrollLeft=ta.scrollLeft;};
+ ta.parentElement.classList.add('json-highlight-host');ta.addEventListener('scroll',draw);ta.addEventListener('input',draw);ta.addEventListener('focus',draw);ta.addEventListener('blur',draw);new ResizeObserver(draw).observe(ta);
+ const originalRefresh=refreshJson;refreshJson=function(){originalRefresh();draw();};
+ document.addEventListener('transitionend',event=>{if(/color|background/.test(event.propertyName))draw();},true);
+ new MutationObserver(()=>requestAnimationFrame(draw)).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','style']});draw();
+ const mods=$('#modSupportList');const view=document.createElement('select');view.setAttribute('aria-label','Mod support view');view.className='mod-view-select';view.innerHTML='<option value="compact">Compact list</option><option value="grid">Cards</option><option value="dense">Dense list</option>';
+ view.value=localStorage.getItem('ql.modSupport.view')||'compact';const apply=()=>{mods.dataset.view=view.value;localStorage.setItem('ql.modSupport.view',view.value);};view.onchange=apply;
+ const viewField=document.createElement('label');viewField.className='settings-field mod-support-view-field';
+ const viewLabel=document.createElement('span');viewLabel.textContent='View';viewField.append(viewLabel,view);
+ mods.closest('.mod-support-panel').querySelector('.mod-support-tools').appendChild(viewField);apply();
+}
 
 // ── Constants ─────────────────────────────────────────────────────
 const MC_STATS=["minecraft:leave_game","minecraft:play_time","minecraft:total_world_time","minecraft:time_since_death","minecraft:time_since_rest","minecraft:sneak_time","minecraft:walk_one_cm","minecraft:crouch_one_cm","minecraft:sprint_one_cm","minecraft:walk_on_water_one_cm","minecraft:fall_one_cm","minecraft:climb_one_cm","minecraft:fly_one_cm","minecraft:walk_under_water_one_cm","minecraft:minecart_one_cm","minecraft:boat_one_cm","minecraft:pig_one_cm","minecraft:horse_one_cm","minecraft:aviate_one_cm","minecraft:swim_one_cm","minecraft:strider_one_cm","minecraft:jump","minecraft:drop","minecraft:damage_dealt","minecraft:damage_dealt_absorbed","minecraft:damage_dealt_resisted","minecraft:damage_taken","minecraft:damage_blocked_by_shield","minecraft:damage_absorbed","minecraft:damage_resisted","minecraft:deaths","minecraft:mob_kills","minecraft:animals_bred","minecraft:player_kills","minecraft:fish_caught","minecraft:talked_to_villager","minecraft:traded_with_villager","minecraft:eat_cake_slice","minecraft:fill_cauldron","minecraft:use_cauldron","minecraft:clean_armor","minecraft:clean_banner","minecraft:clean_shulker_box","minecraft:interact_with_brewingstand","minecraft:interact_with_beacon","minecraft:inspect_dropper","minecraft:inspect_hopper","minecraft:inspect_dispenser","minecraft:play_noteblock","minecraft:tune_noteblock","minecraft:pot_flower","minecraft:trigger_trapped_chest","minecraft:open_enderchest","minecraft:enchant_item","minecraft:play_record","minecraft:interact_with_furnace","minecraft:interact_with_crafting_table","minecraft:open_chest","minecraft:sleep_in_bed","minecraft:open_shulker_box","minecraft:open_barrel","minecraft:interact_with_blast_furnace","minecraft:interact_with_smoker","minecraft:interact_with_lectern","minecraft:interact_with_campfire","minecraft:interact_with_cartography_table","minecraft:interact_with_loom","minecraft:interact_with_stonecutter","minecraft:bell_ring","minecraft:raid_trigger","minecraft:raid_win","minecraft:interact_with_anvil","minecraft:interact_with_grindstone","minecraft:target_hit","minecraft:interact_with_smithing_table"];
 const EQUIP_SLOTS=["head","chest","legs","feet","mainhand","offhand","body"];
-const OBJ_TYPES=["questlog:stat","questlog:block_mine","questlog:block_place","questlog:entity_breed","questlog:entity_death","questlog:entity_kill","questlog:entity_tame","questlog:item_craft","questlog:item_drop","questlog:item_equip","questlog:item_obtain","questlog:item_use","questlog:visit_biome","questlog:visit_dimension","questlog:visit_position","questlog:trample","questlog:enchant","questlog:effect_added","questlog:visit_structure","questlog:or","questlog:not","questlog:block_interact","questlog:entity_approach","questlog:quest_complete","questlog:read","questlog:advancement","questlog:unobtainable"];
-const REW_TYPES=["questlog:item","questlog:command","questlog:experience","questlog:loot_table"];
-const NO_AMOUNT_OBJECTIVES=new Set(["questlog:or","questlog:not","questlog:read","questlog:unobtainable","questlog:quest_complete"]);
+const OBJ_TYPES=["questlog:stat","questlog:block_mine","questlog:block_place","questlog:entity_breed","questlog:entity_death","questlog:entity_kill","questlog:entity_tame","questlog:item_craft","questlog:item_drop","questlog:item_equip","questlog:item_obtain","questlog:item_use","questlog:visit_biome","questlog:visit_dimension","questlog:visit_position","questlog:trample","questlog:enchant","questlog:effect_added","questlog:visit_structure","questlog:and","questlog:origin","questlog:or","questlog:not","questlog:block_interact","questlog:entity_approach","questlog:quest_complete","questlog:read","questlog:advancement","questlog:unobtainable"];
+const REW_TYPES=["questlog:item","questlog:command","questlog:experience","questlog:loot_table","questlog:choice","questlog:random"];
+const NO_AMOUNT_OBJECTIVES=new Set(["questlog:and","questlog:or","questlog:not","questlog:read","questlog:unobtainable","questlog:quest_complete"]);
 const APP_VERSION=window.QUESTLOG_WEBSITE_VERSION||window.QUESTLOG_HTML_VERSION||'development';
 window.QUESTLOG_APP_VERSION=APP_VERSION;
 document.documentElement.dataset.questlogAppVersion=APP_VERSION;
@@ -920,7 +1019,7 @@ function renderModSupportControls(){
       <input type="checkbox" class="mod-pack-toggle" value="${esc(pack.id)}" ${checked?'checked':''} ${active?'':'disabled'}>
       <span>
         <span class="mod-pack-name">${esc(pack.name||pack.id)}</span>
-        <span class="mod-pack-meta">mod id: ${esc(modIds)}</span>
+        <span class="mod-pack-meta">${esc(pack.category||'Other')} · ${(pack.supportedVersions||[]).map(esc).join(', ')} · ${esc(modIds)}</span>
         <span class="mod-pack-desc">${esc(description)}</span>
         ${status?`<span class="mod-pack-status">${status}</span>`:''}
       </span>
@@ -1885,6 +1984,7 @@ function questBoundCh(qn){
   return chapters['main.json']?'main.json':null;
 }
 function bindQ(qn,cn){
+  const selected=sidebarGroup('quest',qn);if(selected.length>1)return moveSidebarGroup('quest',selected,null,false,cn);
   const q=quests[qn];if(!q)return;
   pushHistorySnapshot();
   touchFile('quest',qn);
@@ -1893,6 +1993,7 @@ function bindQ(qn,cn){
   renderFileList();if(currentFile===qn&&mode==='quest'){renderMain();}
 }
 function unbindQ(qn){
+  const selected=sidebarGroup('quest',qn);if(selected.length>1)return moveSidebarGroup('quest',selected,null,false,null);
   const q=quests[qn];if(!q)return;
   pushHistorySnapshot();
   touchFile('quest',qn);
@@ -1940,6 +2041,7 @@ function renameProjectFile(kind,oldName,newName){
   }else{
     renameChapterWithId(oldName,newName);
   }
+  if(sidebarSelection.delete(sidebarKey(kind,oldName)))sidebarSelection.add(sidebarKey(kind,newName));
   if(currentFile===oldName)currentFile=newName;
 }
 
@@ -1969,11 +2071,13 @@ function appendOrderValue(kind,name){
   d[field]=group.reduce((m,f)=>Math.max(m,Number(data[f]?.[field])||0),-1)+1;
 }
 function moveInOrder(kind,name,targetName,after){
+  const selected=sidebarGroup(kind,name);if(selected.length>1)return moveSidebarGroup(kind,selected,targetName,after);
   if(listSort!=='order'){showMsg('Set the list sort to Quest order to reorder by dragging.',false);return false;}
   const data=kind==='quest'?quests:chapters;
   if(!data[name]||!data[targetName]||name===targetName)return false;
   if(currentFile&&getCD())syncVisibleStateForHistory();
   pushHistorySnapshot();
+  const previousChapter=kind==='quest'?questBoundCh(name)||null:null;
   let group;
   if(kind==='quest'){
     const targetCh=questBoundCh(targetName)||null;
@@ -1986,6 +2090,7 @@ function moveInOrder(kind,name,targetName,after){
   idx=idx<0?group.length:idx+(after?1:0);
   group.splice(idx,0,name);
   renumberOrder(kind,group);
+  if(kind==='quest'&&previousChapter!==(questBoundCh(name)||null))renumberOrder('quest',orderedGroup('quest',previousChapter));
   touchFile(kind,name);
   renderFileList();
   if(currentFile&&getCD())renderMain();
@@ -2024,7 +2129,7 @@ function chapterDropTargetAt(x,y,dragged){
 function bindChapterDragRow(row,cf){
   row.dataset.chapterDrag='true';
   row.addEventListener('mousedown',e=>{
-    if(chapterPointerDrag||questSidebarPointerDrag||e.button!==0||e.target.closest?.('button,input,textarea,select,a,[contenteditable="true"]'))return;
+    if(e.shiftKey||e.ctrlKey||e.metaKey||chapterPointerDrag||questSidebarPointerDrag||e.button!==0||e.target.closest?.('button,input,textarea,select,a,[contenteditable="true"]'))return;
     chapterPointerDrag={chapter:cf,row,startX:e.clientX,startY:e.clientY,active:false};
   });
 }
@@ -2148,7 +2253,7 @@ function bindQuestDragRow(row,qn){
   row.dataset.questDrag='true';
   row.ondragstart=e=>e.preventDefault();
   row.onmousedown=e=>{
-    if(questSidebarPointerDrag||e.button!==0||e.target.closest?.('button,input,textarea,select,a,[contenteditable="true"]'))return;
+    if(e.shiftKey||e.ctrlKey||e.metaKey||questSidebarPointerDrag||e.button!==0||e.target.closest?.('button,input,textarea,select,a,[contenteditable="true"]'))return;
     questSidebarPointerDrag={quest:qn,row,startX:e.clientX,startY:e.clientY,pointerId:null,active:false};
   };
   row.onclick=e=>{
@@ -2204,6 +2309,8 @@ function closeRenameModal(){
 }
 
 function startRename(row,oldName,kind){
+  selectFile(oldName,kind,undefined,{fast:true,keepPane:true});
+  row=[...document.querySelectorAll('#fileList .fi')].find(el=>el.dataset.fileName===oldName&&el.dataset.kind===kind)||row;
   const nameEl=row.querySelector('.fi-name');if(!nameEl||nameEl.querySelector('input'))return;
   const base=kind==='chapter'?chapterIdFor(oldName):oldName.replace(/\.json$/i,'');
   const inp=document.createElement('input');inp.className='fi-name-input';inp.value=base;
@@ -2426,15 +2533,15 @@ function selectFile(name,kind,panelKey,opts){
   if(!(opts&&opts.fast&&!isDragging&&refreshSidebarActive()))renderFileList();
   renderMain();
   recordActivity('Opened',kind,name);
-  if(typeof window.__qlPaneOpenEditor==='function')window.__qlPaneOpenEditor();
+  if(!opts?.keepPane&&typeof window.__qlPaneOpenEditor==='function')window.__qlPaneOpenEditor();
 }
 
 // ── Normalize helpers ─────────────────────────────────────────────
 function nvb(b){if(!b||typeof b!=='object')return;if(b.x1!==undefined&&b.minX===undefined)b.minX=b.x1;if(b.y1!==undefined&&b.minY===undefined)b.minY=b.y1;if(b.z1!==undefined&&b.minZ===undefined)b.minZ=b.z1;if(b.x2!==undefined&&b.maxX===undefined)b.maxX=b.x2;if(b.y2!==undefined&&b.maxY===undefined)b.maxY=b.y2;if(b.z2!==undefined&&b.maxZ===undefined)b.maxZ=b.z2;delete b.x1;delete b.y1;delete b.z1;delete b.x2;delete b.y2;delete b.z2;}
-function nob(o){if(!o||typeof o!=='object')return;if(o.type==='questlog:visit_position'&&o.bounds)nvb(o.bounds);if(o.type==='questlog:or'&&Array.isArray(o.objectives))o.objectives.forEach(nob);if(o.type==='questlog:not'&&o.objective)nob(o.objective);}
-function not2(o){if(!o||typeof o!=='object')return;if(o.total!==undefined&&o.required_amount===undefined){o.required_amount=o.total;delete o.total;}if(o.type==='questlog:or'&&Array.isArray(o.objectives))o.objectives.forEach(not2);if(o.type==='questlog:not'&&o.objective)not2(o.objective);}
+function nob(o){if(!o||typeof o!=='object')return;if(o.type==='questlog:visit_position'&&o.bounds)nvb(o.bounds);if((o.type==='questlog:or'||o.type==='questlog:and')&&Array.isArray(o.objectives))o.objectives.forEach(nob);if(o.type==='questlog:not'&&o.objective)nob(o.objective);}
+function not2(o){if(!o||typeof o!=='object')return;if(o.total!==undefined&&o.required_amount===undefined){o.required_amount=o.total;delete o.total;}if((o.type==='questlog:or'||o.type==='questlog:and')&&Array.isArray(o.objectives))o.objectives.forEach(not2);if(o.type==='questlog:not'&&o.objective)not2(o.objective);}
 function nqbd(q){if(!q)return;(q.requirements||[]).forEach(o=>{nob(o);not2(o);});(q.objectives||[]).forEach(o=>{nob(o);not2(o);});(q.failures||[]).forEach(o=>{nob(o);not2(o);});}
-function finR(r){if(!r)return;if(r.level===undefined&&r.levels!==undefined)r.level=!!r.levels;delete r.levels;if(r.translatable!==true)delete r.translatable;if(!r.auto_claim)delete r.auto_claim;if(!r.name)delete r.name;if(!r.claim_sound)delete r.claim_sound;if(r.icon===undefined||r.icon===null||r.icon==='')delete r.icon;const t=r.type;if(t==='questlog:item'&&(r.count===1||r.count===undefined))delete r.count;if(t==='questlog:command'&&(r.permission_level===2||r.permission_level===undefined))delete r.permission_level;if(t==='questlog:experience'&&!r.level)delete r.level;}
+function finR(r){if(!r)return;if(Array.isArray(r.choices))r.choices.forEach(finR);if(Array.isArray(r.entries))r.entries.forEach(entry=>finR(entry?.reward));if(r.levels===undefined&&r.level!==undefined)r.levels=!!r.level;delete r.level;if(r.translatable!==true)delete r.translatable;if(!r.auto_claim)delete r.auto_claim;if(!r.name)delete r.name;if(!r.claim_sound)delete r.claim_sound;if(r.icon===undefined||r.icon===null||r.icon==='')delete r.icon;const t=r.type;if(t==='questlog:item'&&(r.count===1||r.count===undefined))delete r.count;if(t==='questlog:command'&&(r.permission_level===2||r.permission_level===undefined))delete r.permission_level;if(t==='questlog:experience'&&!r.levels)delete r.levels;}
 function finO(o){if(!o||typeof o!=='object')return;if(o.translatable!==true)delete o.translatable;if(!o.name)delete o.name;if(o.icon===undefined||o.icon===null||o.icon==='')delete o.icon;const t=o.type||'';if(!objectiveSupportsAmount(t))delete o.required_amount;else if(o.required_amount===1||o.required_amount===undefined)delete o.required_amount;if(t==='questlog:stat'&&o.retroactive!==false)delete o.retroactive;if(t==='questlog:visit_position'&&o.bounds&&typeof o.bounds==='object'){const b=o.bounds;nvb(b);if(!Object.keys(b).length)delete o.bounds;}if(t==='questlog:or'&&Array.isArray(o.objectives))o.objectives.forEach(finO);if(t==='questlog:not'&&o.objective)finO(o.objective);}
 
 function trimQ(q){
@@ -2450,7 +2557,7 @@ function trimQ(q){
   (q.requirements||[]).forEach(finO);(q.objectives||[]).forEach(finO);(q.failures||[]).forEach(finO);(q.rewards||[]).forEach(finR);
 }
 
-function buildQOut(d){const out=JSON.parse(JSON.stringify(d||{}));applyRequirementSync(out);delete out[QL_REQ_SYNC_KEY];const reqKey=out[QL_REQ_KEY_KEY];delete out[QL_REQ_KEY_KEY];fixQA(out);nqbd(out);trimQ(out);const ordered={};const ap=new Set();normOrder(panelOrder).forEach(pk=>{(PANEL_FIELDS[pk]||[]).forEach(f=>{if(Object.prototype.hasOwnProperty.call(out,f)){ordered[f]=out[f];ap.add(f);}});});Object.keys(out).forEach(f=>{if(!ap.has(f))ordered[f]=out[f];});if(reqKey&&reqKey!=='requirements'&&Object.prototype.hasOwnProperty.call(ordered,'requirements')){const renamed={};Object.keys(ordered).forEach(k=>{renamed[k==='requirements'?reqKey:k]=ordered[k];});return renamed;}return ordered;}
+function buildQOut(d){const out=JSON.parse(JSON.stringify(d||{}));applyRequirementSync(out);delete out[QL_REQ_SYNC_KEY];const reqKey=out[QL_REQ_KEY_KEY];delete out[QL_REQ_KEY_KEY];fixQA(out);nqbd(out);trimQ(out);if(!out.repeatable)delete out.repeatable;if(!out.global)delete out.global;const ordered={};const ap=new Set();normOrder(panelOrder).forEach(pk=>{(PANEL_FIELDS[pk]||[]).forEach(f=>{if(Object.prototype.hasOwnProperty.call(out,f)){ordered[f]=out[f];ap.add(f);}});});Object.keys(out).forEach(f=>{if(!ap.has(f))ordered[f]=out[f];});if(reqKey&&reqKey!=='requirements'&&Object.prototype.hasOwnProperty.call(ordered,'requirements')){const renamed={};Object.keys(ordered).forEach(k=>{renamed[k==='requirements'?reqKey:k]=ordered[k];});return renamed;}return ordered;}
 function trimCh(c){if(!c)return;if(c.translatable!==true)delete c.translatable;if(c.order===0||c.order===undefined)delete c.order;if(c.default_chapter!==true)delete c.default_chapter;if(c.hidden!==true)delete c.hidden;if(c.icon===undefined||c.icon===null||c.icon==='')delete c.icon;}
 
 // ── Quest templates ───────────────────────────────────────────────
@@ -2554,6 +2661,15 @@ const CHANGELOGS=[
   {
     version:APP_VERSION,
     title:`Version ${APP_VERSION}`,
+    status:'Editor improvements and QuestLog 3.5.4 support',
+    sections:[
+      {title:'Added',items:['Theme-aware JSON syntax highlighting.','Sidebar multi-selection and group reordering.','Compact, card and dense Mod Support views.','AND and Origins objectives, choice/random rewards, and repeatable/global quests.','Project undo/redo keyboard shortcuts and quest flag tooltips.']},
+      {title:'Fixed',items:['Initial layout flash and rename/duplicate activation.','Experience reward levels export compatibility.','JSON colors and delayed visual changes when switching themes.','Mod Support view selector overlapping the list.']}
+    ]
+  },
+  {
+    version:'4.3.1',
+    title:'Version 4.3.1',
     status:'Website version and asset cache management',
     sections:[{title:'Updated',items:[
       'One website release version in the mod pack manifest.',
@@ -4629,7 +4745,8 @@ async function questlogRunWorkbenchCanvasReleaseSelfTest(){
     activeFloatingPanelLayout=null;
     applyPersonalLayout('canvas');
     updateWorkbenchState();
-    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    // Test only: allow existing sidebar visibility transitions to settle.
+ await new Promise(resolve=>setTimeout(resolve,300));
     const canvasPanels=collectPanels();
     const canvasOverlaps=collectOverlaps(canvasPanels);
     const canvasPreview=$('[data-workbench-panel="preview"]');
@@ -14681,7 +14798,7 @@ function renderQForm(q){
   <div class="display-icon-preview default-texture" data-tip="Quest icon preview. Uses a default book texture until an icon is configured." aria-label="Quest icon preview"></div>
   <div>
     <div class="display-identity-fields"><div class="field" data-tip="The player-facing quest title shown in Questlog."><label>Title</label><input type="text" id="qf_title" value="${esc(q.title||'')}" /></div><div class="field" data-tip="Questlog uses this number to order quests inside a chapter."><label>Order</label><input type="number" id="qf_sort_order" value="${d('sort_order',0)}" /></div><div class="field" data-tip="The chapter this quest belongs to, usually namespace:chapter_file_name."><label>Chapter ID</label><input type="text" id="qf_chapter" value="${esc(ch)}" placeholder="main" list="qfChapterIds" autocomplete="off" spellcheck="false" /><datalist id="qfChapterIds">${Object.keys(chapters).map(f=>`<option value="${esc(chapterIdFor(f))}"></option>`).join('')}</datalist></div></div>
-    <div class="display-toggles" aria-label="Quest display options"><div class="display-toggle-group"><span class="display-toggle-group-label">File</span><label class="toggle-label" data-tip="Mark the quest text as translatable for language files."><input type="checkbox" id="qf_translatable" ${d('translatable',false)?'checked':''} /> Translatable</label><label class="toggle-label" data-tip="Show this quest in the main Questlog view when appropriate."><input type="checkbox" id="qf_include_in_main" ${incMain?'checked':''} /> Include in main</label><label class="toggle-label" data-tip="Hide even after requirements are met. Usually requirements are enough for normal gating."><input type="checkbox" id="qf_hidden" ${d('hidden',false)?'checked':''} /> Hidden</label><label class="toggle-label" data-tip="Hide this quest from the quest list once the player has completed it."><input type="checkbox" id="qf_hide_when_completed" ${d('hide_when_completed',false)?'checked':''} /> Hide when completed</label></div><div class="display-toggle-group"><span class="display-toggle-group-label">Notify</span><label class="toggle-label" data-tip="Show a toast when this quest becomes available."><input type="checkbox" id="qf_toast_on_unlock" ${d('toast_on_unlock',true)?'checked':''} /> Unlock toast</label><label class="toggle-label" data-tip="Show a toast when this quest is completed."><input type="checkbox" id="qf_toast_on_complete" ${d('toast_on_complete',true)?'checked':''} /> Complete toast</label><label class="toggle-label" data-tip="Show a larger popup when the quest unlocks."><input type="checkbox" id="qf_show_popup_on_unlock" ${d('show_popup_on_unlock',false)?'checked':''} /> Popup</label></div></div>
+    <div class="display-toggles" aria-label="Quest display options"><div class="display-toggle-group"><span class="display-toggle-group-label">File</span><label class="toggle-label" data-tip="Mark the quest text as translatable for language files."><input type="checkbox" id="qf_translatable" ${d('translatable',false)?'checked':''} /> Translatable</label><label class="toggle-label" data-tip="Show this quest in the main Questlog view when appropriate."><input type="checkbox" id="qf_include_in_main" ${incMain?'checked':''} /> Include in main</label><label class="toggle-label" data-tip="Hide even after requirements are met. Usually requirements are enough for normal gating."><input type="checkbox" id="qf_hidden" ${d('hidden',false)?'checked':''} /> Hidden</label><label class="toggle-label" data-tip="Hide this quest from the quest list once the player has completed it."><input type="checkbox" id="qf_hide_when_completed" ${d('hide_when_completed',false)?'checked':''} /> Hide when completed</label></div><div class="display-toggle-group"><span class="display-toggle-group-label">Notify</span><label class="toggle-label" data-tip="Allow this quest to be completed again after it resets (QuestLog 3.5.4)."><input type="checkbox" id="qf_repeatable" ${d('repeatable',false)?'checked':''} /> Repeatable</label><label class="toggle-label" data-tip="Share quest progress globally across players rather than tracking it separately for each player."><input type="checkbox" id="qf_global" ${d('global',false)?'checked':''} /> Global</label><label class="toggle-label" data-tip="Show a toast when this quest becomes available."><input type="checkbox" id="qf_toast_on_unlock" ${d('toast_on_unlock',true)?'checked':''} /> Unlock toast</label><label class="toggle-label" data-tip="Show a toast when this quest is completed."><input type="checkbox" id="qf_toast_on_complete" ${d('toast_on_complete',true)?'checked':''} /> Complete toast</label><label class="toggle-label" data-tip="Show a larger popup when the quest unlocks."><input type="checkbox" id="qf_show_popup_on_unlock" ${d('show_popup_on_unlock',false)?'checked':''} /> Popup</label></div></div>
     <div class="hint display-hidden-hint">Hidden suppresses even after requirements are met. Requirements auto-gate - no need for hidden.</div>
   </div>
 </div>
@@ -14849,7 +14966,8 @@ function renderOF(o){
   const iv=o.icon===undefined||o.icon===null?'':typeof o.icon==='string'?o.icon:JSON.stringify(o.icon);
   const ci=`<div class="field"><label>Icon — optional</label><input type="text" class="obj-icon" value="${esc(iv)}" placeholder='item id or {"item":"..."}' /></div>`;
   const amt=s=>s?`<div class="field" data-tip="How many times the player must do this objective. Some Questlog objective types do not use this."><label>Required amount</label><input type="number" class="obj-amt" min="1" value="${ra}" /></div>`:'';
-  if(t==='questlog:or'){const k=Array.isArray(o.objectives)?o.objectives:[];return`${cn}<div class="nested or-kids">${k.map((c,i)=>wrapOC(c,i,false,'obj')).join('')}</div><button type="button" class="btn btn-dashed add-or-child" style="margin-top:5px;">+ Sub-objective</button>`;}
+  if(t==='questlog:or'||t==='questlog:and'){const k=Array.isArray(o.objectives)?o.objectives:[];return`${cn}<div class="nested or-kids">${k.map((c,i)=>wrapOC(c,i,false,'obj')).join('')}</div><button type="button" class="btn btn-dashed add-or-child" style="margin-top:5px;">+ Sub-objective</button>`;}
+  if(t==='questlog:origin')return `${cn}<div class="field"><label>Origin ID (requires Origins)</label><input class="obj-origin" value="${esc(o.origin||'')}"></div>${amt(true)}${ci}`;
   if(t==='questlog:not'){const ch=o.objective||{type:'questlog:read'};return`${cn}<div class="nested not-child">${wrapOC(ch,0,true,'obj')}</div>`;}
   if(t==='questlog:unobtainable')return`${cn}${ci}`;
   if(t==='questlog:read')return`${cn}<div class="field"><label>Quest ID</label><input type="text" class="obj-read-quest" value="${esc(o.quest||'')}" placeholder="questlog:my_quest" /></div>${ci}`;
@@ -14929,7 +15047,7 @@ function toggleProgressCardOpen(card,kind,i){
 }
 function wrapOC(o,i,isNot,kind='obj'){
   const collapsed=isProgressCardOpen(kind,i)?'':' is-collapsed';
-  return`<div class="obj-card${collapsed}" data-i="${i}">${progressCompactRow(o,i,kind,false)}<div class="card-head progress-edit-head"><span class="card-title">${progressCardLabel(kind,isNot,i)}</span><div class="card-actions">${oSel(o.type||'questlog:item_obtain')}</div></div><div class="obj-fields">${renderOF(o)}</div></div>`;
+  return`<div class="obj-card${collapsed}" data-i="${i}" data-source="${esc(JSON.stringify(o))}">${progressCompactRow(o,i,kind,false)}<div class="card-head progress-edit-head"><span class="card-title">${progressCardLabel(kind,isNot,i)}</span><div class="card-actions">${oSel(o.type||'questlog:item_obtain')}</div></div><div class="obj-fields">${renderOF(o)}</div></div>`;
 }
 
 function renderOL(c,arr,k){c.innerHTML=arr.map((o,i)=>wrapOC(o,i,false,k)).join('');c.dataset.listKey=k;bindOC(c);}
@@ -14996,27 +15114,29 @@ function bindOC(root){
     const save=card.querySelector(':scope > .card-head .progress-save-btn');if(save)save.onclick=()=>{syncQ();renderMain();};
   });
   root.querySelectorAll('.add-or-child').forEach(btn=>{
-    btn.onclick=()=>{const oc=btn.closest('.obj-card');const ts=oc?.querySelector(':scope > .card-head .obj-type');if(!ts||ts.value!=='questlog:or')return;const ok=oc.querySelector('.obj-fields .nested.or-kids');if(!ok)return;const idx=ok.querySelectorAll(':scope > .obj-card').length;ok.insertAdjacentHTML('beforeend',wrapOC({type:'questlog:item_obtain',item:'minecraft:dirt',required_amount:1},idx,false,'obj'));bindOC(ok);syncQ();refreshJson();};
+    btn.onclick=()=>{const oc=btn.closest('.obj-card');const ts=oc?.querySelector(':scope > .card-head .obj-type');if(!ts||!['questlog:or','questlog:and'].includes(ts.value))return;const ok=oc.querySelector('.obj-fields .nested.or-kids');if(!ok)return;const idx=ok.querySelectorAll(':scope > .obj-card').length;ok.insertAdjacentHTML('beforeend',wrapOC({type:'questlog:item_obtain',item:'minecraft:dirt',required_amount:1},idx,false,'obj'));bindOC(ok);syncQ();refreshJson();};
   });
 }
 
 function qIC(card,sel){for(const el of card.querySelectorAll(sel)){if(el.closest('.obj-card')===card)return el;}return null;}
 
 function readOC(card){
-  const type=card.querySelector(':scope > .card-head .obj-type')?.value||'questlog:item_obtain';const o={type};
+  const type=card.querySelector(':scope > .card-head .obj-type')?.value||'questlog:item_obtain';const saved=JSON.parse(card.dataset.source||'{}');const o=saved.type===type?{...saved,type}:{type};['name','translatable','icon','required_amount'].forEach(key=>delete o[key]);
   const fields=card.querySelector(':scope > .obj-fields');const name=fields?.querySelector('.obj-name')?.value?.trim();if(name)o.name=name;if(fields?.querySelector('.obj-trans')?.checked)o.translatable=true;
   const iv=fields?.querySelector('.obj-icon')?.value?.trim();if(iv){try{o.icon=JSON.parse(iv);}catch{o.icon=iv;}}
   const sA=()=>{const v=qIC(card,'.obj-amt');if(v)o.required_amount=Math.max(1,parseInt(v.value,10)||1);};
-  if(type==='questlog:or'){const ob=card.querySelector(':scope > .obj-fields > .nested.or-kids')||card.querySelector('.obj-fields .nested.or-kids');o.objectives=ob?[...ob.querySelectorAll(':scope > .obj-card')].map(c=>readOC(c)):[];return o;}
+  if(type==='questlog:or'||type==='questlog:and'){const ob=card.querySelector(':scope > .obj-fields > .nested.or-kids')||card.querySelector('.obj-fields .nested.or-kids');o.objectives=ob?[...ob.querySelectorAll(':scope > .obj-card')].map(c=>readOC(c)):[];return o;}
+  if(type==='questlog:origin'){o.origin=qIC(card,'.obj-origin')?.value.trim()||'';sA();return o;}
   if(type==='questlog:not'){const inner=card.querySelector(':scope > .obj-fields > .nested.not-child > .obj-card');o.objective=inner?readOC(inner):{type:'questlog:read'};return o;}
   if(type==='questlog:read'||type==='questlog:unobtainable'){if(type==='questlog:read'){const rq=qIC(card,'.obj-read-quest')?.value?.trim();if(rq)o.quest=rq;}return o;}
+  if(saved.type===type&&typeof saved.item==='object'&&qIC(card,'.obj-item')?.value==='[object Object]'){o.item=saved.item;}
   if(objectiveSupportsAmount(type))sA();
   switch(type){
     case'questlog:stat':{const s=qIC(card,'.obj-stat')?.value;const cu=qIC(card,'.obj-stat-custom')?.value?.trim();o.stat=cu||s||'minecraft:walk_one_cm';o.retroactive=!!qIC(card,'.obj-retro')?.checked;break;}
     case'questlog:block_mine':case'questlog:block_place':case'questlog:block_interact':o.block=qIC(card,'.obj-block')?.value?.trim()||'minecraft:stone';if(type==='questlog:block_interact'){const it=itemIdInputValue(qIC(card,'.obj-bitem'));if(it)o.item=it;}break;
-    case'questlog:entity_breed':case'questlog:entity_death':case'questlog:entity_kill':case'questlog:entity_tame':o.entity=qIC(card,'.obj-entity')?.value?.trim()||'minecraft:zombie';break;
-    case'questlog:entity_approach':o.entity=qIC(card,'.obj-entity')?.value?.trim()||'minecraft:villager';o.range=parseFloat(qIC(card,'.obj-range')?.value)||5;break;
-    case'questlog:item_craft':case'questlog:item_drop':case'questlog:item_obtain':case'questlog:item_use':case'questlog:item_equip':o.item=itemIdInputValue(qIC(card,'.obj-item'),'minecraft:dirt');if(type==='questlog:item_equip')o.slot=qIC(card,'.obj-slot')?.value||'mainhand';break;
+    case'questlog:entity_breed':case'questlog:entity_death':case'questlog:entity_kill':case'questlog:entity_tame':o.entity=(saved.type===type&&saved.entity&&typeof saved.entity==='object'&&qIC(card,'.obj-entity')?.value==='[object Object]')?saved.entity:qIC(card,'.obj-entity')?.value?.trim()||'minecraft:zombie';break;
+    case'questlog:entity_approach':o.entity=(saved.type===type&&saved.entity&&typeof saved.entity==='object'&&qIC(card,'.obj-entity')?.value==='[object Object]')?saved.entity:qIC(card,'.obj-entity')?.value?.trim()||'minecraft:villager';o.range=parseFloat(qIC(card,'.obj-range')?.value)||5;break;
+    case'questlog:item_craft':case'questlog:item_drop':case'questlog:item_obtain':case'questlog:item_use':case'questlog:item_equip':o.item=(saved.type===type&&saved.item&&typeof saved.item==='object'&&qIC(card,'.obj-item')?.value==='[object Object]')?saved.item:itemIdInputValue(qIC(card,'.obj-item'),'minecraft:dirt');if(type==='questlog:item_equip')o.slot=qIC(card,'.obj-slot')?.value||'mainhand';break;
     case'questlog:visit_biome':o.biome=qIC(card,'.obj-biome')?.value?.trim()||'minecraft:plains';break;
     case'questlog:visit_dimension':o.dimension=qIC(card,'.obj-dim')?.value?.trim()||'minecraft:overworld';break;
     case'questlog:visit_structure':o.structure=qIC(card,'.obj-structure')?.value?.trim()||'minecraft:village';break;
@@ -15038,6 +15158,7 @@ function renderRC(r,i){
   if(t==='questlog:item')body=`<div class="field"><label>Item</label><input type="text" class="rw-item" value="${esc(r.item||'')}" /></div><div class="field"><label>Count</label><input type="number" class="rw-count" min="1" value="${r.count??1}" /></div>`;
   else if(t==='questlog:command')body=`<div class="field"><label>Command</label><input type="text" class="rw-cmd" value="${esc(r.command||'')}" /></div><div class="field"><label>Permission level</label><input type="number" class="rw-plvl" value="${r.permission_level??2}" /></div>`;
   else if(t==='questlog:experience')body=`<div class="field"><label>Amount</label><input type="number" class="rw-xp" value="${r.experience??0}" /></div><label class="toggle-label"><input type="checkbox" class="rw-levels" ${(r.level??r.levels)?'checked':''} /> Grant as levels</label>`;
+  else if(t==='questlog:choice'||t==='questlog:random')body=`<div class="field"><label>${t==='questlog:choice'?'Choices':'Weighted entries'} (JSON array)</label><textarea class="rw-container" rows="8">${esc(JSON.stringify(t==='questlog:choice'?(r.choices||[]):(r.entries||[]),null,2))}</textarea></div><div class="field"><label>${t==='questlog:choice'?'Pick count':'Roll count'}</label><input type="number" min="1" class="rw-rolls" value="${r.pick_count??r.roll_count??1}"></div>${t==='questlog:random'?`<div class="field"><label>Empty weight</label><input type="number" min="0" step="any" class="rw-empty" value="${r.empty_weight??0}"></div>`:''}`;
   else if(t==='questlog:loot_table')body=`<div class="field"><label>Loot table</label><input type="text" class="rw-loot" value="${esc(r.loot_table||'')}" /></div>`;
   const collapsed=isProgressCardOpen('rew',i)?'':' is-collapsed';
   return`<div class="rew-card${collapsed}" data-ri="${i}">${progressCompactRow(r,i,'rew',true)}<div class="card-head progress-edit-head"><span class="card-title">Reward #${i+1}</span><div class="card-actions">${rSel(t)}</div></div><div class="rew-fields"><div class="field"><label>Name — optional</label><input type="text" class="rw-name" value="${esc(r.name||'')}" /></div><label class="toggle-label" style="margin-bottom:6px;"><input type="checkbox" class="rw-trans" ${r.translatable?'checked':''} /> Translation key</label>${body}<div class="field"><label>Icon</label><input type="text" class="rw-icon" value="${esc(r.icon!=null?(typeof r.icon==='string'?r.icon:JSON.stringify(r.icon)):'')}" /></div><div class="field"><label>Claim sound</label><input type="text" class="rw-sound" value="${esc(r.claim_sound||'')}" /></div><label class="toggle-label" style="margin-bottom:6px;"><input type="checkbox" class="rw-autoclaim" ${r.auto_claim?'checked':''} /> Auto-claim</label></div></div>`;
@@ -15281,8 +15402,9 @@ function syncQ(opts){
   const df=$('#qf_description_failed');q.description_failed=df?pMJ(df.value,true):undefined;if(q.description_failed===undefined)delete q.description_failed;
   const ik=document.querySelector('[data-r="icon-kind"]')?.value;if(ik==='stringitem'){const v=itemIdInputValue(document.querySelector('[data-r="icon-strv"]'));if(v)q.icon=v;else delete q.icon;}else if(ik==='item'){const v=itemIdInputValue(document.querySelector('[data-r="icon-itemv"]'));if(v)q.icon={item:v};else delete q.icon;}else{const v=document.querySelector('[data-r="icon-texv"]')?.value?.trim();if(v)q.icon={texture:v};else delete q.icon;}
   if(readList('reqList'))q.requirements=readOL($('#reqList'));if(readList('objList'))q.objectives=readOL($('#objList'));if(readList('failList')){const f=readOL($('#failList'));if(f.length)q.failures=f;else delete q.failures;}applyRequirementSync(q);
-  if(readList('rewList'))q.rewards=[...$('#rewList').querySelectorAll('.rew-card')].map(card=>{const t=card.querySelector('.rew-type').value;const r={type:t};const n=card.querySelector('.rw-name')?.value?.trim();if(n)r.name=n;if(card.querySelector('.rw-trans')?.checked)r.translatable=true;const ic=card.querySelector('.rw-icon')?.value?.trim();if(ic){try{r.icon=JSON.parse(ic);}catch{r.icon=ic;}}const snd=card.querySelector('.rw-sound')?.value?.trim();if(snd)r.claim_sound=snd;if(card.querySelector('.rw-autoclaim')?.checked)r.auto_claim=true;if(t==='questlog:item'){r.item=itemIdInputValue(card.querySelector('.rw-item'),'minecraft:stone');r.count=parseInt(card.querySelector('.rw-count')?.value,10)||1;}else if(t==='questlog:command'){r.command=card.querySelector('.rw-cmd')?.value?.trim()||'/say hi';r.permission_level=parseInt(card.querySelector('.rw-plvl')?.value,10)||2;}else if(t==='questlog:experience'){r.experience=parseInt(card.querySelector('.rw-xp')?.value,10)||0;if(card.querySelector('.rw-levels')?.checked)r.level=true;}else if(t==='questlog:loot_table'){r.loot_table=card.querySelector('.rw-loot')?.value?.trim()||'minecraft:chests/spawn_bonus_chest';}return r;});
+  if(readList('rewList'))q.rewards=[...$('#rewList').querySelectorAll('.rew-card')].map(card=>{const t=card.querySelector('.rew-type').value;const previous=q.rewards?.[+card.dataset.ri];const r=previous?.type===t?{...previous,type:t}:{type:t};['name','translatable','icon','claim_sound','auto_claim','level','levels'].forEach(key=>delete r[key]);const n=card.querySelector('.rw-name')?.value?.trim();if(n)r.name=n;if(card.querySelector('.rw-trans')?.checked)r.translatable=true;const ic=card.querySelector('.rw-icon')?.value?.trim();if(ic){try{r.icon=JSON.parse(ic);}catch{r.icon=ic;}}const snd=card.querySelector('.rw-sound')?.value?.trim();if(snd)r.claim_sound=snd;if(card.querySelector('.rw-autoclaim')?.checked)r.auto_claim=true;if(t==='questlog:item'){r.item=itemIdInputValue(card.querySelector('.rw-item'),'minecraft:stone');r.count=parseInt(card.querySelector('.rw-count')?.value,10)||1;}else if(t==='questlog:command'){r.command=card.querySelector('.rw-cmd')?.value?.trim()||'/say hi';r.permission_level=parseInt(card.querySelector('.rw-plvl')?.value,10)||2;}else if(t==='questlog:experience'){r.experience=parseInt(card.querySelector('.rw-xp')?.value,10)||0;if(card.querySelector('.rw-levels')?.checked)r.levels=true;}else if(t==='questlog:choice'||t==='questlog:random'){const input=card.querySelector('.rw-container');let values;try{values=JSON.parse(input?.value||'[]');if(!Array.isArray(values))throw new Error('Expected a JSON array');input?.setCustomValidity('');}catch(error){input?.setCustomValidity(error.message);showMsg('Nested reward JSON: '+error.message,false);return q.rewards[+card.dataset.ri]||{type:t};}r[t==='questlog:choice'?'choices':'entries']=values;r[t==='questlog:choice'?'pick_count':'roll_count']=Math.max(1,parseInt(card.querySelector('.rw-rolls')?.value,10)||1);if(t==='questlog:random')r.empty_weight=Math.max(0,Number(card.querySelector('.rw-empty')?.value)||0);}else if(t==='questlog:loot_table'){r.loot_table=card.querySelector('.rw-loot')?.value?.trim()||'minecraft:chests/spawn_bonus_chest';}return r;});
   const cs=$('#qf_completed_sound')?.value?.trim();if(cs)q.completed_sound=cs;else delete q.completed_sound;const ts=$('#qf_triggered_sound')?.value?.trim();if(ts)q.triggered_sound=ts;else delete q.triggered_sound;
+  q.repeatable=$('#qf_repeatable')?.checked||false;q.global=$('#qf_global')?.checked||false;
   q.toast_on_unlock=$('#qf_toast_on_unlock')?.checked;q.toast_on_complete=$('#qf_toast_on_complete')?.checked;q.show_popup_on_unlock=$('#qf_show_popup_on_unlock')?.checked;
   sOS(q,'background_texture',$('#qf_background_texture')?.value||'');sOS(q,'right_panel_texture',$('#qf_right_panel_texture')?.value||'');sOS(q,'peripheral_texture',$('#qf_peripheral_texture')?.value||'');sOS(q,'overlay',$('#qf_overlay')?.value||'');
   const ow=$('#qf_overlay_width')?.value;if(ow!==''&&ow!==null&&ow!==undefined)q.overlay_width=parseInt(ow,10);else delete q.overlay_width;const oh=$('#qf_overlay_height')?.value;if(oh!==''&&oh!==null&&oh!==undefined)q.overlay_height=parseInt(oh,10);else delete q.overlay_height;
@@ -15515,8 +15637,8 @@ const FILE_SAFE=/^[a-z0-9_./-]+\.json$/;
 const HEX_COLOR=/^#[0-9a-fA-F]{6}$/;
 const QUESTLOG_SCHEMA_SOURCE={
   label:'Questlog docs/source',
-  branch:'1.20.1 docs branch',
-  checked:'2026-05-16',
+  branch:'3.5.4 Fabric sources (1.21.1); linked docs are legacy reference',
+  checked:'2026-11-12',
   docs:'https://github.com/infernalstudios/Questlog/tree/1.20.1/docs/questlog',
   examples:'https://github.com/infernalstudios/Questlog/tree/1.20.1/examples/questlog',
   wiki:'https://moddedmc.wiki/en/project/questlog/latest/docs'
@@ -15567,7 +15689,7 @@ function validateObjective(o,out,file,kind,path,questIds,depth=0){
   if(amt!==undefined&&!objectiveSupportsAmount(t))addIssue(out,'warn',file,kind,path+'.required_amount',`${t} does not use required_amount; export will remove it.`);
   else if(amt!==undefined&&(!Number.isFinite(Number(amt))||Number(amt)<1))addIssue(out,'error',file,kind,path+'.required_amount','Required amount must be 1 or higher.');
 
-  if(t==='questlog:or'){
+  if(t==='questlog:or'||t==='questlog:and'){
     if(!Array.isArray(o.objectives)||!o.objectives.length)addMissing(out,file,kind,path+'.objectives','Add at least one option inside this OR group.');
     (o.objectives||[]).forEach((c,i)=>validateObjective(c,out,file,kind,cleanPath(path+'.objectives',i),questIds,depth+1));
     return;
@@ -15577,6 +15699,7 @@ function validateObjective(o,out,file,kind,path,questIds,depth=0){
     else validateObjective(o.objective,out,file,kind,path+'.objective',questIds,depth+1);
     return;
   }
+  if(t==='questlog:origin'&&!isRes(o.origin,false))addIssue(out,'error',file,kind,path+'.origin','Add an Origin ID such as origins:avian (requires Origins).');
   if(t==='questlog:unobtainable')return;
 
   const fld=objTargetField(t);
@@ -15611,6 +15734,14 @@ function validateReward(r,out,file,kind,path){
   const t=r.type||'';
   if(!t)addMissing(out,file,kind,path+'.type','Choose what kind of reward this should be.');
   else if(!REW_TYPES.includes(t))addIssue(out,'error',file,kind,path+'.type',`Unknown reward type: ${t}`);
+  if(t==='questlog:choice'||t==='questlog:random'){
+    const key=t==='questlog:choice'?'choices':'entries',values=r[key];
+    if(!Array.isArray(values)||!values.length)addIssue(out,'error',file,kind,path+'.'+key,'Add at least one nested reward.');
+    else values.forEach((entry,i)=>{if(t==='questlog:random'&&entry?.weight!==undefined&&(!Number.isFinite(entry.weight)||entry.weight<0))addIssue(out,'error',file,kind,path+'.entries.'+i+'.weight','Weight must be a finite nonnegative number.');validateReward(t==='questlog:choice'?entry:entry?.reward,out,file,kind,path+'.'+key+'.'+i);});
+    const count=r[t==='questlog:choice'?'pick_count':'roll_count']??1;
+    if(!Number.isInteger(count)||count<1||(t==='questlog:choice'&&Array.isArray(values)&&count>values.length))addIssue(out,'error',file,kind,path,'Reward count must be a positive integer within the available choices.');
+    if(t==='questlog:random'&&r.empty_weight!==undefined&&(!Number.isFinite(r.empty_weight)||r.empty_weight<0))addIssue(out,'error',file,kind,path+'.empty_weight','Empty weight must be a finite nonnegative number.');
+  }
   const rs=vanillaStatus('sound',r.claim_sound);if(rs===false)addIssue(out,'error',file,kind,path+'.claim_sound',`Unknown vanilla sound ID: ${r.claim_sound}`);
   if(t==='questlog:item'){
     if(!r.item)addMissing(out,file,kind,path+'.item','Add the item to give as this reward.');
@@ -19399,6 +19530,8 @@ function duplicateFile(name,kind){
   const base=name.replace(/\.json$/i,'');let nn=base+'_copy.json';let i=2;
   if(kind==='quest'){while(quests[nn])nn=`${base}_copy${i++}.json`;quests[nn]=JSON.parse(JSON.stringify(quests[name]));appendOrderValue('quest',nn);touchFile('quest',nn);}
   else{while(chapters[nn])nn=`${base}_copy${i++}.json`;chapters[nn]=JSON.parse(JSON.stringify(chapters[name]));appendOrderValue('chapter',nn);touchFile('chapter',nn);}
+  sidebarSelection.clear();sidebarSelection.add(sidebarKey(kind,nn));
+  selectFile(nn,kind);
   recordActivity('Duplicated',kind,nn,name);
   renderFileList();showMsg(`Duplicated as ${nn}`,true);
 }
@@ -19513,6 +19646,8 @@ maybeRunExportAtlasSelfTestFromUrl();
 initReactiveAmbientLight();
 initPaneNav();
 initImportExportUi();
+initEditorImprovements();
+if(new URLSearchParams(location.search).has('editorImprovementsSelfTest'))window.addEventListener('questlog-assets-loaded',()=>setTimeout(runEditorImprovementsSelfTest,0),{once:true});
 saveAutosaveNow('init');
 updateHistoryButtons();
 setTimeout(()=>openTutorialPrompt(false),500);

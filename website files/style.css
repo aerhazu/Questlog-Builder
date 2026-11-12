@@ -14753,3 +14753,23 @@ html:not(#ds){
   & .sidebar-brand-logo:not(.logo-fallback){display:flex!important;align-items:center;justify-content:center;grid-template-columns:none!important;}
   & .sidebar-brand-logo:not(.logo-fallback)>.sidebar-brand-logo-img{flex:none;width:100%!important;height:100%!important;}
 }
+/* Startup is revealed by the manifest loader after layout restoration. */
+html.questlog-booting body{visibility:hidden}
+#fileList .fi.multi-selected{outline:2px solid var(--ac,#b87935);outline-offset:-2px;background:color-mix(in srgb,var(--ac,#b87935) 20%,transparent)}
+#fileList .fi:focus-visible{outline:2px solid var(--text,#fff)}
+.json-highlight-host{position:relative}
+.json-highlight{position:absolute;margin:0;overflow:hidden;pointer-events:none;color:#e5e7eb;z-index:2}
+.json-highlight .json-key{color:#93c5fd}.json-highlight .json-string{color:#86efac}.json-highlight .json-number{color:#fdba74}.json-highlight .json-boolean{color:#d8b4fe}.json-highlight .json-null{color:#fda4af}
+.json-highlight.json-light{color:#172033}.json-light .json-key{color:#164e91}.json-light .json-string{color:#166534}.json-light .json-number{color:#9a3412}.json-light .json-boolean{color:#6b21a8}.json-light .json-null{color:#9f1239}
+#preferencesModSupport{grid-column:1/-1;min-width:0}
+#modSupportList[data-view]{display:grid;grid-template-columns:1fr;gap:6px;width:100%}
+#modSupportList[data-view=grid]{grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr))}
+#modSupportList[data-view=dense] .mod-pack-row{padding:5px 8px}
+#modSupportList[data-view=dense] .mod-pack-desc{display:none}
+.mod-view-select{width:100%;max-width:180px;margin:0;min-height:34px}
+#preferencesModSupport .mod-support-tools{grid-template-columns:minmax(0,1fr) minmax(120px,180px);align-items:end}
+#preferencesModSupport .mod-support-view-field{display:grid;gap:5px;min-width:0;margin:0}
+@media(max-width:600px){#preferencesModSupport .mod-support-tools{grid-template-columns:minmax(0,1fr)}}
+
+/* Apply theme colors immediately; preserve normal transitions afterward. */
+html.theme-switching,html.theme-switching *,html.theme-switching *::before,html.theme-switching *::after{transition:none!important}
