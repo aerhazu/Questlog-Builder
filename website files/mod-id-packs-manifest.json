@@ -53,9 +53,9 @@
       }
     },
     {
-      "src": "mod-id-packs/heart_and_timber.js",
+      "src": "mod-id-packs/hearth_and_timber.js",
       "textures": {
-        "namespace": "heart_and_timber"
+        "namespace": "hearth_and_timber"
       }
     },
     {
