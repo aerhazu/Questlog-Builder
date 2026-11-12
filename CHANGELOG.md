@@ -1,5 +1,13 @@
 ﻿# Changelog
 
+## v4.3.1
+
+- Centralized the website release in the manifest's `websiteVersion` field.
+- Replaced manual script/style cache labels with generated content hashes.
+- Added mod texture folder revisions and a check command for stale markers.
+- Fixed cold-load mod icon placeholders for item names containing entity words.
+- Added the version inventory and release workflow in `VERSIONS.md`.
+
 ## v2.8
 
 - Cleaned up the Advanced editor into clearer texture, overlay, panel, label, color, and badge groups.

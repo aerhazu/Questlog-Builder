@@ -4,7 +4,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Questlog JSON Editor</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23131210'/%3E%3Crect x='7' y='7' width='7' height='7' rx='1' fill='%23d4924a'/%3E%3Crect x='18' y='7' width='7' height='7' rx='1' fill='%23d4924a'/%3E%3Crect x='7' y='18' width='7' height='7' rx='1' fill='%23d4924a'/%3E%3Crect x='18' y='18' width='7' height='7' rx='1' fill='%23e6e2d6'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=4.03-brand-import-1">
+  <link rel="stylesheet" href="style.css?v=ddddc818b1124f02">
 
 </head>
 <body>
@@ -1398,20 +1398,20 @@
   <button type="button" class="pane-nav-btn" data-pane-target="output" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 7-5 5 5 5"/><path d="m16 7 5 5-5 5"/></svg><span>Output</span></button>
 </nav>
 <div class="pane-scrim" id="paneScrim" hidden></div>
-<script src="error-guard.js?v=2.5"></script>
-<script src="jszip.min.js?v=2.5"></script>
-<script src="minecraft-ids.js?v=2.5"></script>
-<script src="minecraft-sounds.js?v=2.5"></script>
-<script src="mod-id-packs-loader.js?v=1"></script>
+<script src="error-guard.js?v=7eee37e70f4530b0"></script>
+<script src="jszip.min.js?v=acc7e41455a80765"></script>
+<script src="minecraft-ids.js?v=a87133079ed9aa8c"></script>
+<script src="minecraft-sounds.js?v=fe91516d734c21eb"></script>
+<script src="mod-id-packs-loader.js?v=5876e76dfc7417dd"></script>
 <script>
-  window.QUESTLOG_HTML_VERSION='3.01';
+  window.QUESTLOG_HTML_VERSION='4.3.1';
   function checkQuestlogVersion(){
     setTimeout(function(){
-    if(window.QUESTLOG_APP_VERSION==='3.01'||document.documentElement.dataset.questlogAppVersion==='3.01')return;
+    if(window.QUESTLOG_APP_VERSION===window.QUESTLOG_HTML_VERSION)return;
     var warn=document.createElement('div');
     warn.id='versionMismatchWarning';
     warn.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(10,8,6,.92);color:#f3d7a4;display:flex;align-items:center;justify-content:center;padding:24px;font:14px system-ui,sans-serif;';
-    warn.innerHTML='<div style="max-width:560px;border:1px solid #d4924a;background:#1b1a16;padding:18px;border-radius:5px;line-height:1.5"><strong style="display:block;color:#fff;margin-bottom:8px">Questlog Editor files are mixed.</strong>The page loaded v3.01 HTML, but the app script is missing or still an older cached version. Re-upload every file from the website files folder, then hard refresh this page.</div>';
+    warn.innerHTML='<div style="max-width:560px;border:1px solid #d4924a;background:#1b1a16;padding:18px;border-radius:5px;line-height:1.5"><strong style="display:block;color:#fff;margin-bottom:8px">Questlog Editor files are mixed.</strong>The HTML and application release versions do not match. Run the website asset update command, upload the complete website files folder, then refresh this page.</div>';
     document.body.appendChild(warn);
     },800);
   }

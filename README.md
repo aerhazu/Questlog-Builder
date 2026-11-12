@@ -9,7 +9,11 @@
 
 Live site: https://questlog-builder.aerhazu.workers.dev
 
-Current build: `4.03-brand-import-1`
+The current release is set by `websiteVersion` in `website files/mod-id-packs-manifest.json`.
+See [the version and release guide](VERSIONS.md) for the full version inventory and update workflow.
+
+After editing website files, run `node tools/update-website-assets.cjs` before deployment.
+This updates browser cache markers automatically; the deployed website remains plain static files.
 
 ## Where this came from
 

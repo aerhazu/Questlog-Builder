@@ -13,7 +13,9 @@
     if (url.origin !== root.origin || !url.pathname.startsWith(root.pathname)) {
       throw new Error('Asset path must stay inside the website root: ' + entry.src);
     }
-    if (entry.version) url.searchParams.set('v', entry.version);
+    // cacheRevision is generated from file contents; version is legacy support.
+    var revision = entry.cacheRevision || entry.version;
+    if (revision) url.searchParams.set('v', revision);
     return url.href;
   }
 
@@ -46,6 +48,7 @@
     if (!manifest || manifest.schema !== 1 || !Array.isArray(manifest.packs) || !manifest.registry || !manifest.app) {
       throw new Error('Invalid mod-id-packs-manifest.json schema');
     }
+    window.QUESTLOG_WEBSITE_VERSION = manifest.websiteVersion || window.QUESTLOG_HTML_VERSION || 'development';
     await loadScript(manifest.registry);
     if (!window.MOD_ID_PACKS || typeof window.MOD_ID_PACKS.register !== 'function') {
       throw new Error('Root mod-id-packs.js registry did not initialize');
@@ -57,6 +60,12 @@
         console.warn('[Questlog loader] Optional mod ID pack skipped:', error);
       }
     }
+    // Texture folders are opt-in per pack; no file probing for packs without textures.
+    window.QUESTLOG_MOD_TEXTURE_CONFIG = manifest.packs.filter(function (pack) {
+      return pack && pack.textures;
+    }).map(function (pack) {
+      return pack.textures;
+    });
     var after = Array.isArray(manifest.afterPacks) ? manifest.afterPacks : [];
     for (var j = 0; j < after.length; j++) await loadScript(after[j]);
     await loadScript(manifest.app);

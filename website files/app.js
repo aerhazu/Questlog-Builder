@@ -561,7 +561,7 @@ const EQUIP_SLOTS=["head","chest","legs","feet","mainhand","offhand","body"];
 const OBJ_TYPES=["questlog:stat","questlog:block_mine","questlog:block_place","questlog:entity_breed","questlog:entity_death","questlog:entity_kill","questlog:entity_tame","questlog:item_craft","questlog:item_drop","questlog:item_equip","questlog:item_obtain","questlog:item_use","questlog:visit_biome","questlog:visit_dimension","questlog:visit_position","questlog:trample","questlog:enchant","questlog:effect_added","questlog:visit_structure","questlog:or","questlog:not","questlog:block_interact","questlog:entity_approach","questlog:quest_complete","questlog:read","questlog:advancement","questlog:unobtainable"];
 const REW_TYPES=["questlog:item","questlog:command","questlog:experience","questlog:loot_table"];
 const NO_AMOUNT_OBJECTIVES=new Set(["questlog:or","questlog:not","questlog:read","questlog:unobtainable","questlog:quest_complete"]);
-const APP_VERSION='3.01';
+const APP_VERSION=window.QUESTLOG_WEBSITE_VERSION||window.QUESTLOG_HTML_VERSION||'development';
 window.QUESTLOG_APP_VERSION=APP_VERSION;
 document.documentElement.dataset.questlogAppVersion=APP_VERSION;
 document.documentElement.dataset.questlogStorage=storageMode;
@@ -2551,6 +2551,16 @@ function renderTemplateModal(){const list=$('#templateList'),cat=$('#templateCat
   $$('.template-delete',list).forEach(btn=>btn.onclick=()=>deleteCustomTemplate(Number(btn.dataset.customIndex)));
 }
 const CHANGELOGS=[
+  {
+    version:APP_VERSION,
+    title:`Version ${APP_VERSION}`,
+    status:'Website version and asset cache management',
+    sections:[{title:'Updated',items:[
+      'One website release version in the mod pack manifest.',
+      'Automatic cache revisions for scripts, styles and optional mod textures.',
+      'Reliable asynchronous mod item and block texture previews.'
+    ]}]
+  },
   {
     version:'3.01',
     title:'Version 3.01',
@@ -7087,6 +7097,10 @@ function previewIconKind(v){
   if(typeof v==='object'&&v?.entity)return'entity';
   if(typeof v==='object'&&v?.block)return'block';
   if(typeof v==='object'&&v?.texture)return'texture';
+  // Mod item names can contain words such as zombie, pig or stone. Use their
+  // declared type instead of vanilla name heuristics while textures load.
+  const modId=minecraftIconId(v);
+  if(!modId.startsWith('minecraft:')&&window.QUESTLOG_MOD_TEXTURES?.supports(modId))return'item';
   if(/_block|block|stone|dirt|log|planks|ore|copper|deepslate|sand|glass|brick/i.test(label))return'block';
   if(/zombie|skeleton|creeper|villager|cow|pig|sheep|entity/i.test(label))return'entity';
   return'item';
@@ -7110,7 +7124,10 @@ function minecraftIconId(v){
 function minecraftPreviewTextureUrl(v){
   const textures=window.QUESTLOG_MINECRAFT_TEXTURES||{};
   const id=minecraftIconId(v);
-  if(!id.startsWith('minecraft:'))return'';
+  if(!id.startsWith('minecraft:')){
+    const kind=typeof v==='object'&&v?.block?'block':'item';
+    return window.QUESTLOG_MOD_TEXTURES?.get(id,kind)||'';
+  }
   return MINECRAFT_PREVIEW_TEXTURE_OVERRIDES[id]||textures[id]||'';
 }
 const MINECRAFT_PREVIEW_TEXTURE_OVERRIDES={
@@ -7200,8 +7217,26 @@ function previewIconTile(v,classes=''){
     return `<span class="ql-icon-tile ${esc(classes)} ${esc(kind)} real-texture" title="${esc(label)}" aria-label="${esc(label)} icon" style="--mc-icon-texture:url(&quot;${esc(texture)}&quot;)"><span>${esc(previewIconLetters(v))}</span></span>`;
   }
   if(kind==='entity')return `<span class="ql-icon-tile ${esc(classes)} entity-preview" title="Entity preview for ${esc(label)}. No bundled entity texture is available." aria-label="${esc(label)} entity preview"><span>${esc(previewIconLetters(v)||'E')}</span></span>`;
-  return `<span class="ql-icon-tile ${esc(classes)} ${esc(kind)} placeholder generic-placeholder" title="No bundled Minecraft texture match for ${esc(label)}." aria-label="Placeholder icon">${esc(previewIconLetters(v)||'P')}</span>`;
+  const modId=minecraftIconId(v);
+  const modPending=modId.includes(':')&&!modId.startsWith('minecraft:')&&window.QUESTLOG_MOD_TEXTURES?.supports(modId);
+  return `<span class="ql-icon-tile ${esc(classes)} ${esc(kind)} placeholder generic-placeholder"${modPending?` data-mod-texture-id="${esc(modId)}"`:''} title="No bundled texture match for ${esc(label)}." aria-label="Placeholder icon">${esc(previewIconLetters(v)||'P')}</span>`;
 }
+// Lazy mod texture resolution updates visible placeholders without rerendering the editor.
+window.addEventListener('questlog-mod-texture-loaded',event=>{
+  const id=event.detail?.id,url=event.detail?.url;
+  if(!id||!url)return;
+  document.querySelectorAll('[data-mod-texture-id]').forEach(tile=>{
+    if(tile.getAttribute('data-mod-texture-id')!==id)return;
+    tile.classList.remove('placeholder','generic-placeholder');
+    tile.classList.add('real-texture');
+    if(tile.classList.contains('block')||/\/block\//.test(url))tile.classList.add('block-flat-icon');
+    tile.style.setProperty('--mc-icon-texture',`url("${url}")`);
+    tile.removeAttribute('data-mod-texture-id');
+    tile.title=id;
+    tile.setAttribute('aria-label',`${id} icon`);
+  });
+  updateDisplayIconPreview();
+});
 function previewEntryIconValue(item){
   if(!item)return null;
   if(item.icon)return item.icon;
