@@ -23,6 +23,78 @@
       "cacheRevision": "a89765d056ce5c32"
     },
     {
+      "src": "mod-id-packs/ancient_remnants.js",
+      "textures": {
+        "namespace": "ancient_remnants"
+      }
+    },
+    {
+      "src": "mod-id-packs/bakery.js",
+      "textures": {
+        "namespace": "bakery"
+      }
+    },
+    {
+      "src": "mod-id-packs/biomesoplenty.js",
+      "textures": {
+        "namespace": "biomesoplenty"
+      }
+    },
+    {
+      "src": "mod-id-packs/envelope.js",
+      "textures": {
+        "namespace": "envelope"
+      }
+    },
+    {
+      "src": "mod-id-packs/handcrafted.js",
+      "textures": {
+        "namespace": "handcrafted"
+      }
+    },
+    {
+      "src": "mod-id-packs/heart_and_timber.js",
+      "textures": {
+        "namespace": "heart_and_timber"
+      }
+    },
+    {
+      "src": "mod-id-packs/herbalbrews.js",
+      "textures": {
+        "namespace": "herbalbrews"
+      }
+    },
+    {
+      "src": "mod-id-packs/kaleidoscope_cookery.js",
+      "textures": {
+        "namespace": "kaleidoscope_cookery"
+      }
+    },
+    {
+      "src": "mod-id-packs/kaleidoscope_tavern.js",
+      "textures": {
+        "namespace": "kaleidoscope_tavern"
+      }
+    },
+    {
+      "src": "mod-id-packs/lilis_pottery.js",
+      "textures": {
+        "namespace": "lilis_pottery"
+      }
+    },
+    {
+      "src": "mod-id-packs/stagecoach.js",
+      "textures": {
+        "namespace": "stagecoach"
+      }
+    },
+    {
+      "src": "mod-id-packs/vinery.js",
+      "textures": {
+        "namespace": "vinery"
+      }
+    },
+    {
       "src": "mod-id-packs/supplementaries.js",
       "cacheRevision": "b5dc670512dd2896"
     },
