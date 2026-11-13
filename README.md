@@ -15,6 +15,8 @@ See [the version and release guide](VERSIONS.md) for the full version inventory 
 After editing website files, run `node tools/update-website-assets.cjs` before deployment.
 This updates browser cache markers automatically; the deployed website remains plain static files.
 
+Performance profiling and regression instructions are documented in [PERFORMANCE.md](PERFORMANCE.md). Hidden Progress controls now load when opened, reducing file-switch work without changing exports.
+
 ## Where this came from
 
 This is a fork of [ChristyTrusty's Questlog Builder](https://github.com/christytrusty/Questlog-Builder). The editor, the GUI Studio, the live previews and the export pipeline all start from that project. Full credit to them for the foundation.
@@ -32,6 +34,12 @@ columns where space allows; icon kind, item ID and both sounds share one row.
 The centered Display, Progress and Advanced tabs divide the toolbar evenly,
 with undo/redo alongside. Chapters use matching surfaces and toolbar placement.
 Grids collapse on smaller panels, and Settings navigation stays reachable.
+In the default layout, close either side pane using its top-corner panel icon.
+Hover at the matching screen edge (no reopen icon is displayed) for
+temporary interactive access. A red checklist count remains on the right
+control. Explicit open/closed choices are remembered in this browser.
+Use **− / Fit / +** inside the bottom-right of quest and chapter previews to zoom independently;
+this changes the preview only, with no effect on exported GUI dimensions.
 
 To replace GUI textures for **all quests and the quest list**, open
 **Settings → Project → Global GUI textures**, then choose **Import PNG** on the

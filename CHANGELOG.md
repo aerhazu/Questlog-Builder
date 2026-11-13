@@ -2,7 +2,36 @@
 
 ## v4.5.0 — Focused editing and global GUI textures
 
+### Performance
+
+- Profiled 20/500/1,000-quest projects and added an opt-in repeatable browser benchmark.
+- Deferred hidden Progress card construction while preserving unmounted list data.
+- Deduplicated undo states before cloning; reduced redundant GUI autosave copies without changing recovery format or timing.
+- Batched sidebar replacement, scoped chapter lookup caching and avoided unchanged selection attributes.
+- Coalesced JSON geometry updates, removed scroll-time layout reads, and ignored unrelated visual changes.
+- Replaced per-rebuild Advanced-menu document listeners with one delegated listener.
+- See PERFORMANCE.md for measurements, regression coverage and remaining limits.
+
 ### Editing experience
+
+- Refined categorized settings into compact, wrapping switch-and-label controls with subtle active backgrounds, clearer category labels and no table columns or separators.
+
+- Fixed categorized settings inheriting tall flex/grid rows; categories now size to their content with bounded control widths. Hidden-pane reopen buttons are explicitly hidden in the state handler, preventing older CSS rules from showing them.
+
+- Restored Visibility, Completion, Notifications and Details panel categories as compact responsive rows, without table lines or separate cards. Hidden panes no longer show reopen icons; mouse edge-hover and keyboard-focusable edge reveal targets remain available.
+
+- Removed the Classic form width cap so hidden pane space is used by the editor. Settings auto-fit aligned columns as width changes; description state tabs now use equal centered columns above the text. Panel icons use borderless header-aligned controls, and preview zoom is inset at the bottom-right inside the preview viewport.
+
+- Panel controls now use one button per pane: it moves into the header during hover reveal and changes icon when pinned, with space reserved beside existing header controls. Preview zoom is anchored inside each preview at the bottom-left and survives preview rerenders.
+
+- Replaced the pane toolbar with in-panel Lucide close buttons and edge reopen buttons; hidden panes slide over the editor on mouse hover, remain interactive and dismiss on exit. Keyboard focus keeps temporary panes available; active pointer drags do not dismiss them.
+- Fixed toggle alignment using separate label/control tracks with natural label wrapping, retaining four columns on wide panels.
+- Reused quest identity, option and metadata layout classes for chapters; removed redundant chapter option/icon headings and retained only chapter-specific controls.
+
+- Added persistent Files and JSON/Checklist visibility buttons to the default (Classic) layout, with a red checklist issue count even when the right pane is hidden.
+- Made quest settings flow into additional columns as editor width increases without reducing control padding.
+- Aligned chapter name/order/ID fields with the quest identity row, replaced the duplicate Chapter settings heading with Display, and standardized Icon kind labels.
+- Added independent quest/chapter preview zoom (50–400%) and Fit reset controls; zoom affects the browser preview only and is retained while switching files during the session.
 
 - Quest Display now orders settings, icon/sound fields, description, then preview. Options use four columns and icon/sound fields share one four-column row where space permits; narrower editors collapse the grids. Tabs divide the available toolbar width evenly with centered labels and aligned history controls. Chapters retain the same toolbar and settings-before-icon-before-preview rhythm.
 

@@ -7,6 +7,9 @@ Minecraft or mod versions.
 
 ## This push: 4.5.0
 
+The pending release also includes measured editor performance improvements,
+without changing saved-data or export formats.
+
 This release combines the focused UI refinement with global GUI atlas importing
 and original-atlas rendering. Imports live in Settings → Project, apply across
 all quests and the quest list, and do not require a quest to be selected.
@@ -16,6 +19,13 @@ then description and preview. Centered tabs and aligned history controls share
 the toolbar; chapters use the same general structure. Grids adapt to available
 panel width. Small-screen Settings navigation remains visible.
 
+Classic pane controls now live inside the panels, with edge reopen icons and
+temporary hover overlays. Chapter identity/options reuse quest layout classes,
+and wrapped toggle labels retain aligned controls.
+
+This pending push also adds Classic pane visibility controls with checklist
+counts, session preview zoom and consistent chapter identity fields.
+
 This pending push remains 4.5.0, including the details-toggle JSON highlight
 refresh fix and the final layout refinements; no additional version bump is
 needed for these edits before the release is published.
@@ -23,8 +33,7 @@ needed for these edits before the release is published.
 No saved-data schema, Minecraft target, or resource-pack format bump is included.
 Custom atlases are embedded in export metadata; full builder project ZIPs carry
 them and resource-pack exports contain the proper QuestLog resource paths.
-See [GUI-RENDERING.md](GUI-RENDERING.md), [UI-REFINEMENT.md](UI-REFINEMENT.md),
-and [CHANGELOG.md](CHANGELOG.md) for details and compatibility limits.
+See [CHANGELOG.md](CHANGELOG.md) for details.
 
 ## Previous release: 4.4.0
 
@@ -38,9 +47,7 @@ The compatibility target inspected is **QuestLog 3.5.4, Fabric, Minecraft 1.21.1
 The Mod Support target remains independent, and existing Minecraft 1.20.1
 suggestion packs remain available. Older Minecraft/QuestLog versions are not
 guaranteed to understand newly added objective/reward types or quest flags.
-See [CHANGELOG.md](CHANGELOG.md) for release notes and
-[EDITOR-UPDATE-NOTES.md](EDITOR-UPDATE-NOTES.md) for source evidence, test results,
-and known limits. No saved-data schema or resource-pack format bump is included.
+See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ## Normal update workflow
 

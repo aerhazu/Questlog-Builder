@@ -562,9 +562,39 @@ applyTheme(cTheme);
 
 
 
+// Opt-in browser benchmark; fixture state is restored and never saved.
+async function runPerformanceSelfTest(){
+ const before={quests,chapters,currentFile,mode,fileMeta,undoStack,redoStack,suppressAutosave,listSort};
+ const savedTab=localStorage.getItem('ql.activeTab');const savedGui={draft:cloneGuiStudioDraft(),scopes:cloneGuiStudioDraft(guiStudioDraftScopes),history:cloneGuiStudioValue(guiStudioHistoryScopes)};
+ localStorage.setItem('ql.activeTab','display');const results=[];suppressAutosave=true;
+ const measure=(fn,n=5)=>{const times=[];for(let i=0;i<n;i++){const t=performance.now();fn();times.push(performance.now()-t);}return times.sort((a,b)=>a-b)[Math.floor(n/2)];};
+ try{
+  for(const size of [20,500,1000]){
+   chapters={};quests={};fileMeta={};undoStack=[];redoStack=[];listSort='order';
+   const count=size===20?4:100;
+   for(let i=0;i<count;i++)chapters['chapter_'+i+'.json']={name:'Chapter '+i,order:i};
+   for(let i=0;i<size;i++)quests['quest_'+i+'.json']={title:'Quest '+i,chapter:'chapter_'+(i%count),description:'A test quest with text. '.repeat(20),objectives:Array.from({length:10},()=>({type:'questlog:item_obtain',item:'minecraft:stone',required_amount:4})),requirements:[],rewards:[]};
+   mode='quest';currentFile='quest_0.json';renderMain();
+   const entry={quests:size,chapters:count};
+   entry.sidebarMs=measure(()=>renderFileList());
+   entry.validationMs=measure(()=>validateAll(false));
+   entry.chapterLookupMs=measure(()=>{for(const file of Object.keys(quests))questBoundCh(file);});
+   entry.historyDuplicateMs=measure(()=>pushHistorySnapshot());
+   entry.autosavePayloadMs=measure(()=>JSON.stringify(autosavePayload()));
+   entry.selectionMs=measure(()=>{currentFile='quest_1.json';renderMain();currentFile='quest_0.json';renderMain();})/2;
+   entry.jsonHighlightMs=measure(()=>highlightJsonText(JSON.stringify(quests,null,2)));
+   const t=performance.now();for(let i=0;i<20;i++){currentFile='quest_'+(i%size)+'.json';renderMain();}entry.twentySwitchesMs=performance.now()-t;
+   if(new URLSearchParams(location.search).has('performanceExtended')){const start=performance.now();for(let i=0;i<200;i++){currentFile='quest_'+(i%size)+'.json';renderMain();if(i%20===19)await new Promise(resolve=>requestAnimationFrame(resolve));}entry.extendedSwitches=200;entry.extendedSwitchMs=performance.now()-start;entry.activeForms=$$('#panelForm .display-identity-panel').length;entry.duplicateZoomControls=$$('#displayQuestPreviewMount .editor-preview-zoom').length;}
+   entry.sidebarRows=$$('#fileList .fi').length;entry.historyEntries=undoStack.length;
+   results.push(entry);await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  }
+  const output=document.createElement('script');output.id='performanceSelfTestResult';output.type='application/json';output.textContent=JSON.stringify({results,heap:performance.memory?.usedJSHeapSize||null});document.body.append(output);
+ }finally{({quests,chapters,currentFile,mode,fileMeta,undoStack,redoStack,suppressAutosave,listSort}=before);guiStudioDraft=savedGui.draft;guiStudioDraftScopes=savedGui.scopes;guiStudioHistoryScopes=savedGui.history;if(savedTab===null)localStorage.removeItem('ql.activeTab');else localStorage.setItem('ql.activeTab',savedTab);renderFileList();renderMain();}
+}
 async function runEditorImprovementsSelfTest(){
  // Test only: allow existing sidebar visibility transitions to settle.
  await new Promise(resolve=>setTimeout(resolve,300));
+ const hiddenPanes=['left','right'].filter(side=>document.body.classList.contains('classic-hide-'+side));hiddenPanes.forEach(side=>$('#classicPane'+side)?.click());
  const before={quests,chapters,currentFile,mode,listSort,fileMeta,pane:document.body.dataset.pane,openEditor:window.__qlPaneOpenEditor};const checks={};window.__qlPaneOpenEditor=()=>{};document.body.dataset.pane='files';
  try{
  quests={'a.json':{title:'A',chapter:'one',objectives:[{type:'questlog:read'}],sort_order:0},'b.json':{title:'B',chapter:'one',objectives:[{type:'questlog:read'}],sort_order:1},'c.json':{title:'C',chapter:'two',objectives:[{type:'questlog:read'}],sort_order:0}};
@@ -585,15 +615,35 @@ async function runEditorImprovementsSelfTest(){
   }
   renderMain();checks[key+'SurvivesRender']=$('#'+id).checked===false;
  }
- checks.compactQuestOptions=$$('.compact-options > .toggle-label').length===11&&!$('.compact-options .display-toggle-group');
+ checks.compactQuestOptions=$$('.compact-options .toggle-label').length===11&&$$('.settings-category').length===4;
  mode='chapter';currentFile='one.json';renderMain();$('#cf_name').value='Renamed chapter';$('#cf_name').dispatchEvent(new Event('input',{bubbles:true}));$('#cf_hidden').click();
  checks.chapterHistoryLocation=!!$('#chapterTabSlot .form-tabs-row #btnUndo')&&!$('#formTabs').querySelector('.tab-btn');
  checks.chapterControls=chapters['one.json'].name==='Renamed chapter'&&chapters['one.json'].hidden===true&&!!$('.chapter-identity-panel')&&!!$('.chapter-options')&&!!$('.chapter-icon-panel');
+ const previousTab=localStorage.getItem('ql.activeTab');
+ localStorage.setItem('ql.activeTab','display');mode='quest';currentFile='a.json';quests[currentFile].objectives=[{type:'questlog:item_obtain',item:'minecraft:stone',required_amount:7,custom_field:'preserve'}];renderMain();
+ checks.progressDeferred=$('#objList').dataset.deferred==='true'&&!$('#objList').childElementCount;
+ const deferredData=JSON.stringify(quests[currentFile].objectives);syncQ();checks.deferredSyncPreservesData=JSON.stringify(quests[currentFile].objectives)===deferredData;
+ setTab('progress');buildTabs();checks.progressMounted=$('#objList').dataset.deferred!=='true'&&!!$('#objList .obj-card');
+ checks.deferredLabelsAssociated=[...$('#objList').querySelectorAll('.field > label[for]')].some(label=>label.control?.closest('#objList'));
+ const amount=$('#objList .obj-amt');amount.value='9';amount.dispatchEvent(new Event('input',{bubbles:true}));syncQ();checks.progressEditPreservesUnknown=quests[currentFile].objectives[0].required_amount===9&&quests[currentFile].objectives[0].custom_field==='preserve';
+ setTab('display');buildTabs();syncQ();checks.progressSurvivesTabSwitch=quests[currentFile].objectives[0].required_amount===9;
+ if(previousTab===null)localStorage.removeItem('ql.activeTab');else localStorage.setItem('ql.activeTab',previousTab);
+ const previousLayout=document.body.dataset.layout;document.body.dataset.layout='classic';
+ for(const side of ['left','right']){
+  const wasHidden=document.body.classList.contains('classic-hide-'+side),panel=$(side==='left'?'.sidebar':'.json-panel');
+  $('#classicPane'+side).click();checks[side+'PanelHidden']=document.body.classList.contains('classic-hide-'+side)&&panel.inert;
+  $('.classic-pane-edge.classic-pane-'+side).dispatchEvent(new PointerEvent('pointerenter',{pointerType:'mouse'}));
+  checks[side+'PanelPeek']=document.body.classList.contains('classic-peek-'+side)&&!panel.inert;
+  panel.dispatchEvent(new PointerEvent('pointerleave'));checks[side+'PanelDismiss']=!document.body.classList.contains('classic-peek-'+side)&&panel.inert;
+  $('#classicPane'+side).click();checks[side+'PanelPinned']=!document.body.classList.contains('classic-hide-'+side)&&!panel.inert;
+  if(wasHidden)$('#classicPane'+side).click();
+ }
+ document.body.dataset.layout=previousLayout;
  const html=highlightJsonText('{"key":"<script>","n":2,"b":true,"x":null}');checks.highlightEscapes=html.includes('&lt;script&gt;')&&!html.includes('<script>');checks.highlightKinds=['key','string','number','boolean','null'].every(k=>html.includes('json-'+k));
  const issues=[];validateReward({type:'questlog:random',roll_count:1,entries:[{weight:1,reward:{type:'questlog:experience',experience:5}}]},issues,'test.json','quest','rewards');checks.randomValidation=!issues.some(i=>i.level==='error'||i.severity==='error');
  writeExportAtlasSelfTestResult(Object.values(checks).every(Boolean)?'passed':'failed',{test:'editor-improvements',checks});
  }catch(error){writeExportAtlasSelfTestResult('error',{message:error.message,stack:error.stack,checks});}
- finally{window.__qlPaneOpenEditor=before.openEditor;document.body.dataset.pane=before.pane;({quests,chapters,currentFile,mode,listSort,fileMeta}=before);sidebarSelection.clear();renderFileList();renderMain();}
+ finally{hiddenPanes.forEach(side=>{if(!document.body.classList.contains('classic-hide-'+side))$('#classicPane'+side)?.click();});window.__qlPaneOpenEditor=before.openEditor;document.body.dataset.pane=before.pane;({quests,chapters,currentFile,mode,listSort,fileMeta}=before);sidebarSelection.clear();renderFileList();renderMain();}
 }
 
 // Sidebar selection is transient; the active editor remains currentFile/mode.
@@ -607,7 +657,7 @@ function sidebarGroup(kind,name){
 function paintSidebarSelection(){
  document.querySelectorAll('#fileList .fi').forEach(row=>{
  const key=sidebarKey(row.dataset.kind,row.dataset.fileName);
- row.classList.toggle('multi-selected',sidebarSelection.has(key));row.setAttribute('aria-selected',String(sidebarSelection.has(key)));row.tabIndex=0;row.setAttribute('role','option');
+ const selected=sidebarSelection.has(key);if(row.classList.contains('multi-selected')!==selected)row.classList.toggle('multi-selected',selected);if(row.getAttribute('aria-selected')!==String(selected))row.setAttribute('aria-selected',String(selected));if(row.tabIndex!==0)row.tabIndex=0;if(row.getAttribute('role')!=='option')row.setAttribute('role','option');
  });
  const summary=$('#sidebarSelectionSummary');if(summary){summary.hidden=sidebarSelection.size<2;const text=sidebarSelection.size+' selected · Esc to clear';if(summary.textContent!==text)summary.textContent=text;}
 }
@@ -656,19 +706,23 @@ function initEditorImprovements(){
  list.addEventListener('keydown',e=>{if(e.target.matches('input,textarea'))return;const row=e.target.closest('.fi');if(e.key==='Escape'){sidebarSelection.clear();paintSidebarSelection();}if(row&&(e.key==='Enter'||e.key===' ')){e.preventDefault();row.click();}if(row&&e.key==='F2'){e.preventDefault();startRename(row,row.dataset.fileName,row.dataset.kind);}});
  new MutationObserver(paintSidebarSelection).observe(list,{childList:true,subtree:true});
  const ta=$('#liveJson'),pre=document.createElement('pre');pre.className='json-highlight';pre.setAttribute('aria-hidden','true');ta.parentElement.appendChild(pre);
- let last=null;
- const draw=()=>{const cs=getComputedStyle(ta);['font','lineHeight','letterSpacing','padding','boxSizing','whiteSpace','wordBreak','overflowWrap','tabSize','borderRadius'].forEach(k=>pre.style[k]=cs[k]);pre.style.width=ta.offsetWidth+'px';pre.style.height=ta.offsetHeight+'px';pre.style.left=ta.offsetLeft+'px';pre.style.top=ta.offsetTop+'px';pre.style.transition='none';pre.style.backgroundColor='var(--bg)';let bgColor=getComputedStyle(pre).backgroundColor;for(let node=ta.parentElement;node&&(bgColor==='transparent'||bgColor==='rgba(0, 0, 0, 0)');node=node.parentElement)bgColor=getComputedStyle(node).backgroundColor;pre.style.background=bgColor;const bg=bgColor.match(/[\d.]+/g)||[20,20,20];const light=Number(bg[0])+Number(bg[1])+Number(bg[2])>450;pre.classList.toggle('json-light',light);pre.style.background=`color-mix(in srgb,${bgColor} 12%,${light?'#ffffff':'#101820'})`;pre.hidden=ta.offsetWidth===0||document.activeElement===ta||ta.value.length>500000;if(last!==ta.value){last=ta.value;if(last.length>500000)pre.textContent='';else pre.innerHTML=highlightJsonText(last)+'\n';}pre.scrollTop=ta.scrollTop;pre.scrollLeft=ta.scrollLeft;};
- ta.parentElement.classList.add('json-highlight-host');ta.addEventListener('scroll',draw);ta.addEventListener('input',draw);ta.addEventListener('focus',draw);ta.addEventListener('blur',draw);new ResizeObserver(draw).observe(ta);
+ let last=null;const paintJsonText=()=>{if(last!==ta.value){last=ta.value;if(last.length>500000)pre.textContent='';else pre.innerHTML=highlightJsonText(last)+'\n';}};
+ const draw=()=>{const cs=getComputedStyle(ta);['font','lineHeight','letterSpacing','padding','boxSizing','whiteSpace','wordBreak','overflowWrap','tabSize','borderRadius'].forEach(k=>pre.style[k]=cs[k]);pre.style.width=ta.offsetWidth+'px';pre.style.height=ta.offsetHeight+'px';pre.style.left=ta.offsetLeft+'px';pre.style.top=ta.offsetTop+'px';pre.style.transition='none';pre.style.backgroundColor='var(--bg)';let bgColor=getComputedStyle(pre).backgroundColor;for(let node=ta.parentElement;node&&(bgColor==='transparent'||bgColor==='rgba(0, 0, 0, 0)');node=node.parentElement)bgColor=getComputedStyle(node).backgroundColor;pre.style.background=bgColor;const bg=bgColor.match(/[\d.]+/g)||[20,20,20];const light=Number(bg[0])+Number(bg[1])+Number(bg[2])>450;pre.classList.toggle('json-light',light);pre.style.background=`color-mix(in srgb,${bgColor} 12%,${light?'#ffffff':'#101820'})`;pre.hidden=ta.offsetWidth===0||document.activeElement===ta||ta.value.length>500000;paintJsonText();pre.scrollTop=ta.scrollTop;pre.scrollLeft=ta.scrollLeft;};
+ let highlightFrame=0;const queueDraw=()=>{if(highlightFrame)return;highlightFrame=requestAnimationFrame(()=>{highlightFrame=0;draw();});};
+ ta.parentElement.classList.add('json-highlight-host');ta.addEventListener('scroll',()=>{pre.scrollTop=ta.scrollTop;pre.scrollLeft=ta.scrollLeft;});ta.addEventListener('input',queueDraw);ta.addEventListener('focus',queueDraw);ta.addEventListener('blur',queueDraw);new ResizeObserver(queueDraw).observe(ta);
  // Debounced callers retain the original function; notify from that refresh path.
- ta.addEventListener('questlog-json-refreshed',draw);
- document.addEventListener('transitionend',event=>{if(/color|background/.test(event.propertyName))draw();},true);
- new MutationObserver(()=>requestAnimationFrame(draw)).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','style']});draw();
+ ta.addEventListener('questlog-json-refreshed',()=>{paintJsonText();queueDraw();});
+ document.addEventListener('transitionend',event=>{if((event.target===document.body||event.target===document.documentElement||event.target===ta.parentElement)&&/color|background/.test(event.propertyName))queueDraw();},true);
+ const themeSignature=()=>[document.documentElement.dataset.theme,...['--bg','--json-bg','--tx','--ac','--font','--font-size'].map(key=>document.documentElement.style.getPropertyValue(key))].join('|');let highlightTheme=themeSignature();
+ new MutationObserver(()=>{const signature=themeSignature();if(signature!==highlightTheme){highlightTheme=signature;queueDraw();}}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','style']});draw();
  const mods=$('#modSupportList');const view=document.createElement('select');view.setAttribute('aria-label','Mod support view');view.className='mod-view-select';view.innerHTML='<option value="compact">Compact list</option><option value="grid">Cards</option><option value="dense">Dense list</option>';
  view.value=localStorage.getItem('ql.modSupport.view')||'compact';const apply=()=>{mods.dataset.view=view.value;localStorage.setItem('ql.modSupport.view',view.value);};view.onchange=apply;
  const viewField=document.createElement('label');viewField.className='settings-field mod-support-view-field';
  const viewLabel=document.createElement('span');viewLabel.textContent='View';viewField.append(viewLabel,view);
  mods.closest('.mod-support-panel').querySelector('.mod-support-tools').appendChild(viewField);apply();
 }
+
+const editorPreviewZoom={quest:1,chapter:1};
 
 // ── Constants ─────────────────────────────────────────────────────
 const MC_STATS=["minecraft:leave_game","minecraft:play_time","minecraft:total_world_time","minecraft:time_since_death","minecraft:time_since_rest","minecraft:sneak_time","minecraft:walk_one_cm","minecraft:crouch_one_cm","minecraft:sprint_one_cm","minecraft:walk_on_water_one_cm","minecraft:fall_one_cm","minecraft:climb_one_cm","minecraft:fly_one_cm","minecraft:walk_under_water_one_cm","minecraft:minecart_one_cm","minecraft:boat_one_cm","minecraft:pig_one_cm","minecraft:horse_one_cm","minecraft:aviate_one_cm","minecraft:swim_one_cm","minecraft:strider_one_cm","minecraft:jump","minecraft:drop","minecraft:damage_dealt","minecraft:damage_dealt_absorbed","minecraft:damage_dealt_resisted","minecraft:damage_taken","minecraft:damage_blocked_by_shield","minecraft:damage_absorbed","minecraft:damage_resisted","minecraft:deaths","minecraft:mob_kills","minecraft:animals_bred","minecraft:player_kills","minecraft:fish_caught","minecraft:talked_to_villager","minecraft:traded_with_villager","minecraft:eat_cake_slice","minecraft:fill_cauldron","minecraft:use_cauldron","minecraft:clean_armor","minecraft:clean_banner","minecraft:clean_shulker_box","minecraft:interact_with_brewingstand","minecraft:interact_with_beacon","minecraft:inspect_dropper","minecraft:inspect_hopper","minecraft:inspect_dispenser","minecraft:play_noteblock","minecraft:tune_noteblock","minecraft:pot_flower","minecraft:trigger_trapped_chest","minecraft:open_enderchest","minecraft:enchant_item","minecraft:play_record","minecraft:interact_with_furnace","minecraft:interact_with_crafting_table","minecraft:open_chest","minecraft:sleep_in_bed","minecraft:open_shulker_box","minecraft:open_barrel","minecraft:interact_with_blast_furnace","minecraft:interact_with_smoker","minecraft:interact_with_lectern","minecraft:interact_with_campfire","minecraft:interact_with_cartography_table","minecraft:interact_with_loom","minecraft:interact_with_stonecutter","minecraft:bell_ring","minecraft:raid_trigger","minecraft:raid_win","minecraft:interact_with_anvil","minecraft:interact_with_grindstone","minecraft:target_hit","minecraft:interact_with_smithing_table"];
@@ -1555,7 +1609,6 @@ let lastEditActivity={key:'',time:0};
 const HISTORY_LIMIT=60;
 let undoStack=[],redoStack=[],historyRestoring=false;
 function autosavePayload(){
-  if(typeof guiStudioSaveActiveDraftToScope==='function')guiStudioSaveActiveDraftToScope();
   return {
     version:2,
     savedAt:new Date().toISOString(),
@@ -1570,9 +1623,9 @@ function autosavePayload(){
     customTemplates,
     undoStack,
     redoStack,
-    guiStudioDraft:typeof cloneGuiStudioDraft==='function'?cloneGuiStudioDraft():null,
-    guiStudioDraftScopes:typeof guiStudioScopedDraftBundle==='function'?guiStudioScopedDraftBundle():null,
-    guiStudioHistoryScopes:typeof guiStudioHistoryBundle==='function'?guiStudioHistoryBundle():null,
+    guiStudioDraft:typeof guiStudioDraft!=='undefined'?guiStudioDraft:null,
+    guiStudioDraftScopes:typeof guiStudioScopedDraftBundle==='function'?guiStudioScopedDraftBundle(false):null,
+    guiStudioHistoryScopes:typeof guiStudioHistoryBundle==='function'?guiStudioHistoryBundle(false):null,
     rawMode:!!$('#viewRaw')?.checked
   };
 }
@@ -1607,12 +1660,13 @@ function updateHistoryButtons(){
   if(u)u.disabled=!(undoStack.length||(workbenchActive&&workbenchUndoStack.length));
   if(r)r.disabled=!(redoStack.length||(workbenchActive&&workbenchRedoStack.length));
 }
+let historySnapshotSignatures=new WeakMap();
 function pushHistorySnapshot(){
   if(historyRestoring)return;
-  const snap=cloneProjectState();
-  const sig=stateSig(snap);
+  const sig=stateSig({namespace:getNs(),mode,currentFile,quests,chapters,rawMode:!!$('#viewRaw')?.checked});
   const last=undoStack[undoStack.length-1];
-  if(last&&stateSig(last)===sig)return;
+  if(last){let previous=historySnapshotSignatures.get(last);if(previous===undefined){previous=stateSig(last);historySnapshotSignatures=new WeakMap();historySnapshotSignatures.set(last,previous);}if(previous===sig)return;}
+  const snap=cloneProjectState();historySnapshotSignatures=new WeakMap();historySnapshotSignatures.set(snap,sig);
   undoStack.push(snap);
   if(undoStack.length>HISTORY_LIMIT)undoStack.shift();
   redoStack=[];
@@ -1859,9 +1913,11 @@ function chapterRefLevel(file,ref){
   if(i>=0&&r.slice(i+1)===base)return 2;
   return 0;
 }
+let chapterLookupBatch=null;
 function chapterFileForRef(ref){
-  for(const file of Object.keys(chapters||{})){if(chapterRefLevel(file,ref))return file;}
-  return null;
+  if(chapterLookupBatch?.has(ref))return chapterLookupBatch.get(ref);
+  for(const file of Object.keys(chapters||{})){if(chapterRefLevel(file,ref)){chapterLookupBatch?.set(ref,file);return file;}}
+  chapterLookupBatch?.set(ref,null);return null;
 }
 // Accepts "name" or "namespace:name" and keeps only the name.
 function parseChapterIdInput(raw){
@@ -2423,10 +2479,11 @@ function renderFileList(){
   if(isDragging)return;
   fileListSkipSigs.clear();
   fileTagTileMemo=new Map();
-  try{renderFileListNow();}finally{fileTagTileMemo=null;}
+  const previousLookup=chapterLookupBatch;chapterLookupBatch=new Map();
+  try{renderFileListNow();}finally{fileTagTileMemo=null;chapterLookupBatch=previousLookup;}
 }
 function renderFileListNow(){
-  const list=$('#fileList');list.innerHTML='';
+  const listHost=$('#fileList'),list=document.createDocumentFragment();
   ensureFileMeta();
   const sortSel=$('#questListSort');if(sortSel)sortSel.value=listSort;
   updateSortMenu();
@@ -2503,6 +2560,7 @@ function renderFileListNow(){
     uz.appendChild(qRow);
   });
   if(visibleUnbound.length||questSearch.trim())list.appendChild(uz);
+  listHost.replaceChildren(list);
 }
 
 function makeFiRow(name,tag,active,hasUnlink){
@@ -6684,7 +6742,7 @@ async function questlogRunProgressEditorSelfTest(){
     }));
     setTab('display');
     renderMain();
-    const group=document.querySelector('.display-toggle-group');
+    const group=document.querySelector('.settings-category');
     const groupStyle=group?getComputedStyle(group):null;
     const fileNotifyGroup={
       borderTopWidth:groupStyle?.borderTopWidth||'',
@@ -6734,7 +6792,7 @@ async function questlogRunProgressEditorSelfTest(){
       zombieUsesFaceFallback:zombieHtml.includes('entity-face-only')&&!zombieHtml.includes('three-entity-model'),
       validationLabelsReadable:validationPathLabel({kind:'quest',path:'objectives[0].entity'})==='Objectives #1 > Entity ID'&&validationPathLabel({kind:'quest',path:'rewards[2].count'})==='Rewards #3 > Item count',
       validationTargetSpecific:!!validationEntityTarget?.querySelector?.('.obj-entity'),
-      fileNotifyGroupsBoxed:fileNotifyGroup.borderTopWidth==='1px'&&fileNotifyGroup.borderTopStyle==='solid'&&fileNotifyGroup.boxShadow==='none'
+      categorizedSettingsPresent:$$('.settings-category').length===4&&!!group?.querySelector('input[type=checkbox]')
     };
     result={ok:Object.values(checks).every(Boolean),checks,counts,sectionIcons,fallbackIcons,blurIcon,blurBlockIcon,previewHtmlChecks:{furnaceHtml,beeHtml,zombieHtml},fileNotifyGroup};
   }finally{
@@ -8142,8 +8200,9 @@ function fitInlinePreviewContent(host,stageSelector,contentSelectors,scaleVar,pa
       const rawW=bounds.width/scale;
       const rawH=bounds.height/scale;
       const fit=Math.min((stageRect.width-12)/Math.max(1,rawW),(stageRect.height-12)/Math.max(1,rawH));
-      const nextScale=Math.max(minScale,Math.min(maxScale,scale,fit));
-      if(Number.isFinite(nextScale)&&nextScale<scale-.001){
+      const zoom=Number(host.dataset.previewZoom)||1;
+      const nextScale=Math.max(minScale,Math.min(maxScale,fit)*zoom);
+      if(Number.isFinite(nextScale)&&Math.abs(nextScale-scale)>.001){
         host.style.setProperty(scaleVar,nextScale.toFixed(3));
         requestInlinePreviewFrame(fitAndPan);
         return;
@@ -8157,6 +8216,7 @@ function fitInlineQuestlogPreviews(root=document){
     const hosts=[...(root?.querySelectorAll?.('.inline-quest-preview,.inline-chapter-list-preview,.workbench-quest-preview')||[])];
     const self=root?.matches?.('.inline-quest-preview,.inline-chapter-list-preview,.workbench-quest-preview')?[root]:[];
     [...self,...hosts].forEach(host=>{
+      mountEditorPreviewZoom(host);
       const rect=host.getBoundingClientRect();
       if(!rect.width||!rect.height)return;
       if(host.classList.contains('inline-chapter-list-preview')){
@@ -8589,14 +8649,14 @@ function guiStudioPruneHistoryScopes(){
   });
   guiStudioHistoryScopes.questMenu=clean;
 }
-function guiStudioHistoryBundle(){
+function guiStudioHistoryBundle(copy=true){
   guiStudioSaveActiveHistoryToScope();
   guiStudioPruneHistoryScopes();
   return {
     version:1,
     activeKey:guiStudioHistoryScopes.activeKey,
-    questList:guiStudioHistoryScopes.questList?cloneGuiStudioValue(guiStudioHistoryScopes.questList):null,
-    quests:cloneGuiStudioValue(guiStudioHistoryScopes.questMenu||{})
+    questList:guiStudioHistoryScopes.questList?(copy?cloneGuiStudioValue(guiStudioHistoryScopes.questList):guiStudioHistoryScopes.questList):null,
+    quests:copy?cloneGuiStudioValue(guiStudioHistoryScopes.questMenu||{}):guiStudioHistoryScopes.questMenu||{}
   };
 }
 function restoreGuiStudioHistoryScopes(scopes){
@@ -8654,14 +8714,14 @@ function guiStudioPruneScopedDrafts(){
   });
   guiStudioDraftScopes.questMenu=clean;
 }
-function guiStudioScopedDraftBundle(){
+function guiStudioScopedDraftBundle(copy=true){
   guiStudioSaveActiveDraftToScope();
   guiStudioPruneScopedDrafts();
   return {
     version:1,
     activeKey:guiStudioDraftScopes.activeKey,
-    questList:guiStudioDraftScopes.questList?cloneGuiStudioDraft(guiStudioDraftScopes.questList):null,
-    quests:cloneGuiStudioDraft(guiStudioDraftScopes.questMenu||{})
+    questList:guiStudioDraftScopes.questList?(copy?cloneGuiStudioDraft(guiStudioDraftScopes.questList):guiStudioDraftScopes.questList):null,
+    quests:copy?cloneGuiStudioDraft(guiStudioDraftScopes.questMenu||{}):guiStudioDraftScopes.questMenu||{}
   };
 }
 function guiStudioSplitLegacyDraftIntoScopes(legacyDraft){
@@ -14554,7 +14614,7 @@ function buildTabs(){
   });
   advBtn.onclick=e=>{e.stopPropagation();advMenu.classList.toggle('open');};
   advWrap.appendChild(advBtn);advWrap.appendChild(advMenu);host.appendChild(advWrap);
-  document.addEventListener('click',()=>advMenu.classList.remove('open'),{once:true});
+
 
   // Apply visibility to sections
   const sections=$$('#panelForm > details.section[data-panel-key]');
@@ -14580,6 +14640,7 @@ function buildTabs(){
     }
     sum.appendChild(ctrl);
   });
+  if(active==='progress')ensureQuestProgressMounted();
   placeFormTabs(active);renderInlineQuestPreview();
 }
 
@@ -14616,7 +14677,7 @@ function renderMain(){
   }
   restoreFormTabsToAnchor();
   $('#panelForm').innerHTML='';
-  if(mode==='chapter'){$('#panelForm').innerHTML=renderChForm(getCD());$('#formTabs').innerHTML='<span class="chapter-tab-label">Chapter settings</span>';placeFormTabs();bindChForm();}
+  if(mode==='chapter'){$('#panelForm').innerHTML=renderChForm(getCD());$('#formTabs').innerHTML='<span class="chapter-tab-label">Display</span>';placeFormTabs();bindChForm();}
   else{$('#panelForm').innerHTML=renderQForm(getCD());buildTabs();bindQForm();}
   refineEditorPresentation();
   if(!jsonFocused)refreshJson();
@@ -14627,6 +14688,61 @@ dValidate();
 }
 
 // Presentation only: retain the original inputs, IDs and event bindings.
+function classicPanelIcon(side,open){
+ const left=side==='left';const points=(left!==open)?'14 9 11 12 14 15':'10 9 13 12 10 15';
+ return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M${left?9:15} 3v18"/><path d="M${points}"/></svg>`;
+}
+function initClassicPaneControls(){
+ if($('#classicPaneleft'))return;
+ for(const [side,label,selector,headerSelector] of [['left','Files','.sidebar','.sidebar-brand'],['right','JSON / Checklist','.json-panel','#rightPanelTabs']]){
+  const panel=$(selector);let header=$(headerSelector);if(!panel||!header)continue;
+  if(side==='left'){const row=document.createElement('div');row.className='classic-sidebar-head';header.before(row);row.append(header);header=row;}
+  const key='ql.classicPane.'+side,hiddenClass='classic-hide-'+side,peekClass='classic-peek-'+side;
+  const button=document.createElement('button');button.type='button';button.id='classicPane'+side;button.className='btn classic-pane-button classic-pane-'+side;
+  const badge=document.createElement('span');badge.className='classic-checklist-badge';badge.hidden=true;if(side==='right')badge.dataset.paneChecklist='';
+  const update=()=>{
+   const hidden=document.body.classList.contains(hiddenClass),peek=document.body.classList.contains(peekClass),classic=document.body.dataset.layout==='classic';
+   button.innerHTML=classicPanelIcon(side,hidden);if(side==='right')button.append(badge);
+   if(hidden&&!peek&&classic)button.style.setProperty('display','none','important');else button.style.removeProperty('display');
+   button.classList.toggle('classic-pane-open',hidden&&!peek);button.classList.toggle('classic-pane-close',!hidden||peek);
+   button.setAttribute('aria-label',(hidden?'Show ':'Hide ')+label);button.title=(hidden?'Keep open: ':'Hide ')+label;button.setAttribute('aria-expanded',String(!hidden||peek));
+   const parent=hidden&&!peek&&classic?document.body:header;if(button.parentElement!==parent){if(parent===header&&side==='right')parent.prepend(button);else parent.append(button);}
+   panel.inert=classic&&hidden&&!peek;
+  };
+  const apply=hidden=>{document.body.classList.remove(peekClass);document.body.classList.toggle(hiddenClass,hidden);localStorage.setItem(key,String(hidden));update();requestAnimationFrame(()=>fitInlineQuestlogPreviews());};
+  const peek=()=>{if(document.body.dataset.layout!=='classic'||!document.body.classList.contains(hiddenClass)||document.body.classList.contains(peekClass))return;document.body.classList.add(peekClass);update();};
+  const dismiss=()=>{if(!document.body.classList.contains(peekClass)||panel.contains(document.activeElement)||panel.matches(':hover'))return;document.body.classList.remove(peekClass);update();};
+  const edge=document.createElement('div');edge.className='classic-pane-edge classic-pane-'+side;edge.tabIndex=0;edge.setAttribute('role','button');edge.setAttribute('aria-label','Reveal '+label+' panel');edge.onfocus=peek;edge.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();apply(false);}if(e.key==='Escape'){edge.blur();dismiss();}};
+  edge.onpointerenter=e=>{if(e.pointerType==='mouse'&&!e.buttons)peek();};
+  edge.onpointerleave=()=>setTimeout(dismiss,180);
+  panel.addEventListener('pointerleave',e=>{if(!e.buttons){if(document.body.classList.contains(peekClass)&&panel.contains(document.activeElement))document.activeElement.blur();dismiss();}});panel.addEventListener('focusout',()=>setTimeout(dismiss,0));document.addEventListener('pointerup',()=>{if(!panel.matches(':hover'))dismiss();});
+  button.onclick=e=>{e.stopPropagation();button.blur();apply(!document.body.classList.contains(hiddenClass));};
+  document.body.append(edge);apply(localStorage.getItem(key)==='true');
+  new MutationObserver(()=>{document.body.classList.remove(peekClass);update();}).observe(document.body,{attributes:true,attributeFilter:['data-layout']});
+ }
+ renderValidation();
+}
+function mountEditorPreviewZoom(host){
+ if(!host.matches('.inline-quest-preview,.inline-chapter-list-preview')||host.querySelector('.editor-preview-zoom'))return;
+ const key=host.classList.contains('inline-chapter-list-preview')?'chapter':'quest';host.dataset.previewZoom=String(editorPreviewZoom[key]);
+ const tools=document.createElement('div');tools.className='editor-preview-zoom';tools.setAttribute('role','group');tools.setAttribute('aria-label','Preview zoom');
+ const value=document.createElement('output');value.textContent=Math.round(editorPreviewZoom[key]*100)+'%';
+ for(const [label,delta] of [['Zoom out',-.25],['Reset zoom',0],['Zoom in',.25]]){
+  const button=document.createElement('button');button.type='button';button.className='btn';button.textContent=delta<0?'−':delta>0?'+':'Fit';button.setAttribute('aria-label',label);
+  button.onclick=e=>{e.stopPropagation();editorPreviewZoom[key]=delta?Math.max(.5,Math.min(4,editorPreviewZoom[key]+delta)):1;host.dataset.previewZoom=String(editorPreviewZoom[key]);value.textContent=Math.round(editorPreviewZoom[key]*100)+'%';fitInlineQuestlogPreviews(host);};tools.append(button);
+ }
+ tools.append(value);host.append(tools);
+}
+
+let editorFieldId=0;
+function associateEditorFieldLabels(root){
+ root?.querySelectorAll('.field').forEach(field=>{
+  const label=field.querySelector(':scope > label'),input=field.querySelector(':scope > input,:scope > select,:scope > textarea');
+  if(!label||!input||label.contains(input)||label.htmlFor)return;
+  if(!input.id){let candidate;do{candidate='ql-field-'+(++editorFieldId);}while(document.getElementById(candidate));input.id=candidate;}
+  label.htmlFor=input.id;
+ });
+}
 function refineEditorPresentation(){
  const panel=$('#panelForm');if(!panel||!currentFile)return;
  const context=document.createElement('header');context.className='editor-file-context';
@@ -14642,7 +14758,12 @@ function refineEditorPresentation(){
   const groups=[['Visibility',['qf_include_in_main','qf_hidden','qf_hide_when_completed','qf_translatable']],['Completion',['qf_repeatable','qf_global']],['Notifications',['qf_toast_on_unlock','qf_toast_on_complete','qf_show_popup_on_unlock']],['Details panel',['qf_details_open','qf_details_disabled']]];
   const labels=new Map([...options.querySelectorAll('label')].map(label=>[label.querySelector('input')?.id,label]));options.replaceChildren();
   options.classList.add('compact-options');
-  groups.forEach(([,ids])=>ids.forEach(id=>{if(labels.has(id))options.append(labels.get(id));}));
+  groups.forEach(([title,ids])=>{
+   const category=document.createElement('div');category.className='settings-category';category.setAttribute('role','group');category.setAttribute('aria-label',title);
+   const heading=document.createElement('span');heading.className='settings-category-title';heading.textContent=title;
+   const controls=document.createElement('div');controls.className='settings-category-controls';
+   ids.forEach(id=>{if(labels.has(id))controls.append(labels.get(id));});category.append(heading,controls);options.append(category);
+  });
   const display=panel.querySelector('[data-panel-key="display"] .sec-body');if(display)display.insertBefore(options,display.querySelector('#displayQuestPreviewMount'));
  }
  // Keep Display ordered: options, icon/sounds, description, then preview.
@@ -14662,14 +14783,32 @@ function refineEditorPresentation(){
   const preview=chapterBody.querySelector('.chapter-list-preview-card');
   for(const node of [options,hint,icon,preview])if(node)chapterBody.append(node);
  }
+ if(chapterBody){
+  const identity=chapterBody.querySelector('.chapter-identity-panel');
+  const name=$('#cf_name')?.closest('.field'),order=$('#cf_order')?.closest('.field'),id=$('#cf_id')?.closest('.field');
+  if(identity&&name&&order&&id){
+   identity.classList.add('display-identity-panel');const fields=document.createElement('div');fields.className='display-identity-fields';fields.append(name,order,id);
+   const wrapper=document.createElement('div');wrapper.append(fields);const icon=document.createElement('div');icon.className='editor-chapter-icon';icon.innerHTML=previewIconTile(getCD().icon||{item:'minecraft:knowledge_book'},'');identity.replaceChildren(icon,wrapper);
+   panel.querySelectorAll('[data-r^="chicon"]').forEach(control=>{for(const event of ['input','change'])control.addEventListener(event,()=>{icon.innerHTML=previewIconTile(getCD().icon||{item:'minecraft:knowledge_book'},'');});});
+  }
+  const options=chapterBody.querySelector('.chapter-options');if(options){options.className='chapter-options display-toggles compact-options';options.querySelector('.display-toggle-group-label')?.remove();}
+  chapterBody.querySelector('.chapter-section-label')?.remove();chapterBody.querySelector('.chapter-options-hint')?.remove();
+  chapterBody.querySelector('.chapter-icon-panel')?.classList.add('display-meta-grid');
+ }
+ panel.querySelectorAll('.inline-quest-preview,.inline-chapter-list-preview').forEach(mountEditorPreviewZoom);
+ panel.querySelectorAll('.compact-options .toggle-label').forEach(label=>{
+  const text=document.createElement('span');text.className='option-label-text';
+  for(const node of [...label.childNodes])if(node.nodeType===Node.TEXT_NODE)text.append(node);
+  label.append(text);
+ });
  // Give existing standalone form labels a real programmatic association.
- panel.querySelectorAll('.field').forEach((field,index)=>{const label=field.querySelector(':scope > label');const input=field.querySelector(':scope > input,:scope > select,:scope > textarea');if(label&&input&&!label.contains(input)&&!label.htmlFor){if(!input.id)input.id='ql-field-'+index;label.htmlFor=input.id;}});
+ associateEditorFieldLabels(panel);
 }
 
 // ── Renderable ────────────────────────────────────────────────────
 function renderRend(p,val){
   let k='item';if(typeof val==='string'&&val)k='stringitem';else if(val&&val.texture)k='texture';else if(val&&val.item)k='item';
-  return`<div class="field" data-tip="Choose how this icon is written in Questlog JSON."><label>${p} kind</label><select data-r="${p}-kind"><option value="item" ${k==='item'?'selected':''}>Item (object)</option><option value="texture" ${k==='texture'?'selected':''}>Texture</option><option value="stringitem" ${k==='stringitem'?'selected':''}>Item ID (string)</option></select></div><div class="field" data-r="${p}-item" data-tip="Minecraft item ID used for the Questlog icon."><label>Item ID</label><input type="text" data-r="${p}-itemv" value="${esc(val&&val.item?val.item:'')}" placeholder="minecraft:diamond" /></div><div class="field hidden" data-r="${p}-tex" data-tip="Resource-pack texture path used for the Questlog icon."><label>Texture path</label><input type="text" data-r="${p}-texv" value="${esc(val&&val.texture?val.texture:'')}" /></div><div class="field hidden" data-r="${p}-str" data-tip="Legacy/simple item ID string format."><label>Item ID string</label><input type="text" data-r="${p}-strv" value="${typeof val==='string'?esc(val):''}" /></div>`;
+  return`<div class="field" data-tip="Choose how this icon is written in Questlog JSON."><label>Icon kind</label><select data-r="${p}-kind"><option value="item" ${k==='item'?'selected':''}>Item (object)</option><option value="texture" ${k==='texture'?'selected':''}>Texture</option><option value="stringitem" ${k==='stringitem'?'selected':''}>Item ID (string)</option></select></div><div class="field" data-r="${p}-item" data-tip="Minecraft item ID used for the Questlog icon."><label>Item ID</label><input type="text" data-r="${p}-itemv" value="${esc(val&&val.item?val.item:'')}" placeholder="minecraft:diamond" /></div><div class="field hidden" data-r="${p}-tex" data-tip="Resource-pack texture path used for the Questlog icon."><label>Texture path</label><input type="text" data-r="${p}-texv" value="${esc(val&&val.texture?val.texture:'')}" /></div><div class="field hidden" data-r="${p}-str" data-tip="Legacy/simple item ID string format."><label>Item ID string</label><input type="text" data-r="${p}-strv" value="${typeof val==='string'?esc(val):''}" /></div>`;
 }
 const DISPLAY_ICON_DEFAULT_PREVIEW={item:'minecraft:book'};
 function updateDisplayIconPreview(){
@@ -15435,6 +15574,13 @@ function bindQForm(){
   if(!$('#displayQuestPreviewMount')?.childElementCount)renderInlineQuestPreview();
   $('#advancedLayoutGuiStudioBtn')?.addEventListener('click',()=>openGuiStudio('quest-menu'));
   $$('[data-r^="icon"]').forEach(el=>{el.addEventListener('input',updateDisplayIconPreview);el.addEventListener('change',updateDisplayIconPreview);});
+  for(const id of ['reqList','objList','failList','rewList'])$('#'+id).dataset.deferred='true';
+  if((localStorage.getItem('ql.activeTab')||'display')==='progress')ensureQuestProgressMounted();
+}
+function ensureQuestProgressMounted(){
+  if(mode!=='quest'||!getCD()||$('#objList')?.dataset.deferred!=='true')return;
+  const q=getCD();
+  for(const id of ['reqList','objList','failList','rewList'])delete $('#'+id).dataset.deferred;
   renderOL($('#reqList'),q.requirements||[],'req');renderOL($('#objList'),q.objectives||[],'obj');renderOL($('#failList'),q.failures||[],'fail');
   const rw=$('#rewList');rw.innerHTML=(q.rewards||[]).map((r,i)=>renderRC(r,i)).join('');
   rw.querySelectorAll('.rew-card').forEach(card=>{if(isProgressCardOpen('rew',+card.dataset.ri))card.classList.remove('is-collapsed');});
@@ -15463,6 +15609,7 @@ function bindQForm(){
   $('#addFail').onclick=()=>{syncQ();if(!q.failures)q.failures=[];q.failures.push({type:'questlog:stat',stat:'minecraft:play_time',required_amount:6000,retroactive:false});setCD(q);renderMain();};
   $('#addRew').onclick=()=>{syncQ();if(!Array.isArray(q.rewards))q.rewards=[];q.rewards.push({type:'questlog:item',item:'minecraft:diamond',count:1});setCD(q);renderMain();};
   bindProgressTools();
+  associateEditorFieldLabels($('#panelForm'));
 }
 
 function bindChForm(){
@@ -15500,7 +15647,7 @@ function sOS(obj,k,v){v=v.trim();if(v)obj[k]=v;else delete obj[k];}
 function syncQ(opts){
   if(!currentFile||mode!=='quest'||rawMode)return;
   const onlyLists=opts&&Array.isArray(opts.lists)?new Set(opts.lists):null;
-  const readList=id=>!onlyLists||onlyLists.has(id);
+  const readList=id=>$('#'+id)?.dataset.deferred!=='true'&&(!onlyLists||onlyLists.has(id));
   touchFile('quest',currentFile);
   const q=getCD();
   q.title=$('#qf_title')?.value||'';q.sort_order=parseInt($('#qf_sort_order')?.value,10)||0;q.chapter=$('#qf_chapter')?.value?.trim()||'main';q.translatable=$('#qf_translatable')?.checked;q.include_in_main=$('#qf_include_in_main')?.checked;q.hidden=$('#qf_hidden')?.checked;q.hide_when_completed=$('#qf_hide_when_completed')?.checked;
@@ -16016,6 +16163,8 @@ function renderValidation(){
   if(badge)badge.className='validation-badge '+(errors?'err':missing?'missing':warns?'warn':'ok');
   const parts=[]; if(missing)parts.push(`${missing} missing`); if(errors)parts.push(`${errors} error${errors===1?'':'s'}`); if(warns)parts.push(`${warns} warning${warns===1?'':'s'}`);
   const tabProblemCount=missing+errors+warns;
+  for(const paneBadge of $$('[data-pane-checklist]')){paneBadge.hidden=!tabProblemCount;paneBadge.textContent=tabProblemCount>99?'99+':String(tabProblemCount);paneBadge.title=parts.join(' · ');}
+
   if(tabBadge){tabBadge.classList.toggle('hidden',!tabProblemCount);tabBadge.textContent=tabProblemCount>99?'99+':String(tabProblemCount);tabBadge.title=parts.length?parts.join(' · '):'No issues';}
   badge.textContent=parts.length?parts.join(' · '):'No issues';
   if(!issues.length){list.innerHTML=`<div class="validation-empty">No problems found. Clean JSON, tidy satchel. ✨</div>`;renderWorkbenchPanels();return;}
@@ -16153,7 +16302,7 @@ document.addEventListener('click',e=>{
 function closeFocusedDockMenus(){
   $('#focusedExportToggle')?.setAttribute('aria-expanded','false');
 }
-document.addEventListener('click',()=>{closeSidebarMenus();closeSortMenu();closeModSupportSortMenu();closeFocusedDockMenus();});
+document.addEventListener('click',()=>{$$('.adv-menu.open').forEach(menu=>menu.classList.remove('open'));closeSidebarMenus();closeSortMenu();closeModSupportSortMenu();closeFocusedDockMenus();});
 function closeModSupportSortMenu(){
   $('#modSupportSortMenu')?.classList.remove('open');
   $('#modSupportSortButton')?.setAttribute('aria-expanded','false');
@@ -19756,6 +19905,8 @@ initPaneNav();
 initImportExportUi();
 initEditorImprovements();
 mountGuiAtlasControls();
+initClassicPaneControls();
+if(new URLSearchParams(location.search).has('performanceSelfTest'))window.addEventListener('questlog-assets-loaded',()=>setTimeout(runPerformanceSelfTest,0),{once:true});
 if(new URLSearchParams(location.search).has('editorImprovementsSelfTest'))window.addEventListener('questlog-assets-loaded',()=>setTimeout(runEditorImprovementsSelfTest,0),{once:true});
 saveAutosaveNow('init');
 updateHistoryButtons();
