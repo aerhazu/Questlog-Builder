@@ -7,6 +7,10 @@ Minecraft or mod versions.
 
 ## This push: 4.5.0
 
+Preferences now includes saved new/duplicate placement: after the active item,
+start, or end. It applies to both quests and chapters without changing the
+project/export format.
+
 File workflows now include Delete/Backspace for selected sidebar files, Select
 all in bulk deletion, chapter-only/cascade deletion choices, and blank quest
 creation in the active chapter. Existing project/export formats are unchanged.

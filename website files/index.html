@@ -143,6 +143,15 @@
 
             <section class="preferences-card active" id="preferencesEditor" data-pref-panel="preferences">
               <div id="settingsEditorMount"></div>
+              <div class="settings-field">
+                <label for="newFilePlacement">New and duplicated file placement</label>
+                <select id="newFilePlacement">
+                  <option value="after">After the active quest or chapter</option>
+                  <option value="start">Start of the chapter / chapter list</option>
+                  <option value="end">End of the chapter / chapter list</option>
+                </select>
+                <small>Applies to quests within their chapter and chapters within the chapter list. Uses Quest order sorting. With no matching active item, After places the file at the end.</small>
+              </div>
               <div class="settings-field settings-volume-field">
                 <label for="uiSoundVolume">Sound volume</label>
                 <div class="settings-range-row">

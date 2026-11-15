@@ -2154,6 +2154,8 @@ function renameProjectFile(kind,oldName,newName){
 // Quests are ordered inside their chapter by sort_order, chapters by order.
 // Creating, binding or dragging an item writes the order values, so the numbers always match the list.
 const ORDER_FIELD={quest:'sort_order',chapter:'order'};
+const NEW_FILE_PLACEMENT_KEY='ql.newFilePlacement';
+let newFilePlacement=['after','start','end'].includes(localStorage.getItem(NEW_FILE_PLACEMENT_KEY))?localStorage.getItem(NEW_FILE_PLACEMENT_KEY):'after';
 let lastSidebarDragEnd=0;
 function orderedGroup(kind,groupChapter,exclude){
   const data=kind==='quest'?quests:chapters,field=ORDER_FIELD[kind];
@@ -2174,6 +2176,25 @@ function appendOrderValue(kind,name){
   const d=data[name];if(!d)return;
   const group=kind==='chapter'?orderedGroup('chapter',null,name):orderedGroup('quest',questBoundCh(name)||null,name);
   d[field]=group.reduce((m,f)=>Math.max(m,Number(data[f]?.[field])||0),-1)+1;
+}
+function setNewFilePlacement(value){
+ newFilePlacement=['after','start','end'].includes(value)?value:'after';
+ localStorage.setItem(NEW_FILE_PLACEMENT_KEY,newFilePlacement);
+ const control=$('#newFilePlacement');if(control)control.value=newFilePlacement;
+}
+function activeOrderingAnchor(kind){
+ if(kind==='quest')return mode==='quest'&&quests[currentFile]?currentFile:null;
+ return mode==='chapter'&&chapters[currentFile]?currentFile:mode==='quest'?questBoundCh(currentFile):null;
+}
+function insertNewFile(kind,name){
+ const data=kind==='quest'?quests:chapters;if(!data[name])return;
+ const groupChapter=kind==='quest'?questBoundCh(name)||null:null;
+ const names=orderedGroup(kind,groupChapter,name);
+ const anchor=activeOrderingAnchor(kind);
+ let at=names.length;
+ if(newFilePlacement==='start')at=0;
+ else if(newFilePlacement==='after'&&names.includes(anchor))at=names.indexOf(anchor)+1;
+ names.splice(at,0,name);renumberOrder(kind,names);
 }
 function moveInOrder(kind,name,targetName,after){
   const selected=sidebarGroup(kind,name);if(selected.length>1)return moveSidebarGroup(kind,selected,targetName,after);
@@ -2721,7 +2742,7 @@ function slugFile(s){return String(s||'quest').toLowerCase().replace(/[^a-z0-9_.
 function uniqueFileName(base,map){let n=base.endsWith('.json')?base:base+'.json';let i=2;const stem=n.replace(/\.json$/i,'');while(map[n])n=`${stem}_${i++}.json`;return n;}
 function uniqueTemplateTitle(base){let title=String(base||'Custom quest').trim()||'Custom quest';let n=title,i=2;const used=new Set(customTemplates.map(t=>String(t.title||'').toLowerCase()));while(used.has(n.toLowerCase()))n=`${title} ${i++}`;return n;}
 function cloneTemplateQuest(t){const q={title:t.title,description:t.description||'',icon:t.icon||{item:'minecraft:book'},objectives:JSON.parse(JSON.stringify(t.objectives||[])),requirements:JSON.parse(JSON.stringify(t.requirements||[])),rewards:JSON.parse(JSON.stringify(t.rewards||[]))};if(t.completed_sound)q.completed_sound=t.completed_sound;if(t.triggered_sound)q.triggered_sound=t.triggered_sound;if(t.toast_on_unlock!==undefined)q.toast_on_unlock=t.toast_on_unlock;if(t.toast_on_complete!==undefined)q.toast_on_complete=t.toast_on_complete;fixQA(q);return q;}
-function createQuestFromTemplate(t){const fn=uniqueFileName(t.file||slugFile(t.title),quests);const q=cloneTemplateQuest(t);quests[fn]=q;appendOrderValue('quest',fn);touchFile('quest',fn);recordActivity('Created from template','quest',fn,t.title);selectFile(fn,'quest');showMsg(`Created template: ${t.title}`,true);scheduleAutosave();}
+function createQuestFromTemplate(t){const fn=uniqueFileName(t.file||slugFile(t.title),quests);const q=cloneTemplateQuest(t);quests[fn]=q;insertNewFile('quest',fn);touchFile('quest',fn);recordActivity('Created from template','quest',fn,t.title);selectFile(fn,'quest');showMsg(`Created template: ${t.title}`,true);scheduleAutosave();}
 function deleteCustomTemplate(index){
   const tpl=customTemplates[index];
   if(!tpl)return;
@@ -16313,7 +16334,7 @@ function activeChapterForNewQuest(){
 function createNewQuest(){
  const chapter=activeChapterForNewQuest();let n='new_quest.json',i=1;while(quests[n])n=`new_quest_${i++}.json`;
  quests[n]=defQ();if(chapter)quests[n].chapter=chapterIdFor(chapter);
- appendOrderValue('quest',n);touchFile('quest',n);recordActivity('Created','quest',n);sidebarSelection.clear();sidebarSelection.add(sidebarKey('quest',n));selectFile(n,'quest');
+ insertNewFile('quest',n);touchFile('quest',n);recordActivity('Created','quest',n);sidebarSelection.clear();sidebarSelection.add(sidebarKey('quest',n));selectFile(n,'quest');
 }
 
 // ── Events ────────────────────────────────────────────────────────
@@ -16436,6 +16457,7 @@ function setupSettingsMenu(){
   setupPreferenceTabs();
   const versionPill=$('#versionPill');
   if(versionPill)versionPill.textContent=`v${APP_VERSION}`;
+  const placement=$('#newFilePlacement');if(placement)placement.value=newFilePlacement;
   const autosaveBox=$('#autosaveToggle');
   if(autosaveBox)autosaveBox.checked=autosaveEnabled;
   const tooltipBox=$('#tooltipsToggle');
@@ -18235,7 +18257,7 @@ applyGuiStudioTooltipMetadata();
 renderGuiStudioResourcePackShell();
 
 onClick('#btnNewQuest',createNewQuest);
-onClick('#btnNewChapter',()=>{let b='new_chapter',n=`${b}.json`,i=1;while(chapters[n])n=`${b}_${i++}.json`;const isFirst=!Object.keys(chapters).length;chapters[n]=defC();if(isFirst)chapters[n].default_chapter=true;appendOrderValue('chapter',n);touchFile('chapter',n);recordActivity('Created','chapter',n);selectFile(n,'chapter');});
+onClick('#btnNewChapter',()=>{let b='new_chapter',n=`${b}.json`,i=1;while(chapters[n])n=`${b}_${i++}.json`;const isFirst=!Object.keys(chapters).length;chapters[n]=defC();if(isFirst)chapters[n].default_chapter=true;insertNewFile('chapter',n);touchFile('chapter',n);recordActivity('Created','chapter',n);selectFile(n,'chapter');});
 onEvent('#questListSort','change',e=>setListSort(e.target.value));
 onClick('#questListSortButton',e=>{
   e.preventDefault();
@@ -19578,6 +19600,7 @@ $('#compactJson')?.addEventListener('change',()=>{refreshJson();recordActivity('
 if($('#viewRaw'))$('#viewRaw').onchange=()=>{rawMode=!!$('#viewRaw')?.checked;recordActivity(rawMode?'Enabled raw JSON':'Disabled raw JSON','project','');if(rawMode)setRightPanelMode('json');renderMain();};
 $$('.right-panel-tab').forEach(btn=>btn.addEventListener('click',()=>setRightPanelMode(btn.dataset.rightMode)));
 onClick('#btnCopyJson',copyLiveJson);
+$('#newFilePlacement')?.addEventListener('change',e=>setNewFilePlacement(e.target.value));
 $('#autosaveToggle')?.addEventListener('change',e=>setAutosaveEnabled(e.target.checked));
 $('#tooltipsToggle')?.addEventListener('change',e=>setTooltipsEnabled(e.target.checked));
 $('#uiSoundsToggle')?.addEventListener('change',e=>setUiSoundsEnabled(e.target.checked));
@@ -19847,8 +19870,8 @@ onClick('#renameCancelBtn',closeRenameModal);
 
 function duplicateFile(name,kind){
   const base=name.replace(/\.json$/i,'');let nn=base+'_copy.json';let i=2;
-  if(kind==='quest'){while(quests[nn])nn=`${base}_copy${i++}.json`;quests[nn]=JSON.parse(JSON.stringify(quests[name]));appendOrderValue('quest',nn);touchFile('quest',nn);}
-  else{while(chapters[nn])nn=`${base}_copy${i++}.json`;chapters[nn]=JSON.parse(JSON.stringify(chapters[name]));appendOrderValue('chapter',nn);touchFile('chapter',nn);}
+  if(kind==='quest'){while(quests[nn])nn=`${base}_copy${i++}.json`;quests[nn]=JSON.parse(JSON.stringify(quests[name]));insertNewFile('quest',nn);touchFile('quest',nn);}
+  else{while(chapters[nn])nn=`${base}_copy${i++}.json`;chapters[nn]=JSON.parse(JSON.stringify(chapters[name]));insertNewFile('chapter',nn);touchFile('chapter',nn);}
   sidebarSelection.clear();sidebarSelection.add(sidebarKey(kind,nn));
   selectFile(nn,kind);
   recordActivity('Duplicated',kind,nn,name);

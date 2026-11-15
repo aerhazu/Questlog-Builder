@@ -38,6 +38,13 @@ It is made for the [Questlog mod](https://modrinth.com/mod/questlog). It is not 
   chapter belonging to the currently open quest. With no active chapter,
   creation keeps the existing default behavior. Templates retain their own data.
 
+In **Settings → Preferences → New and duplicated file placement**, choose
+**After the active quest or chapter** (default), **Start**, or **End**. Quests
+are placed within their chapter; chapters are placed within the chapter list.
+The preference is saved in this browser and applies to single template creation
+as well, preserving the template's chapter. Use **Quest order** sorting to see
+this placement. If there is no matching active item, After falls back to End.
+
 ## What it does
 
 The editor keeps the current file visible in its header, with direct **Preview**

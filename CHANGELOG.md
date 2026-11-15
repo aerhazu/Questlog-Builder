@@ -14,6 +14,9 @@
 
 ### Editing experience
 
+- Added a saved Preferences setting for new/duplicated file placement: after the active item (default), start, or end. Applies to quests within their chapter, chapters within the chapter list, and single template creation.
+- Placement preserves chapter bindings and relative order, updates numeric ordering, and falls back to the end when there is no matching active item. Alphabetical/recent sort modes remain unchanged.
+
 - Added Delete/Backspace for sidebar multi-selection, using the existing confirmation and one undo snapshot. Text editing, dialogs, GUI Studio and the Canvas background are excluded.
 - Added Select all to the bulk-delete popup.
 - Added chapter context actions to delete only the chapter or the chapter and its bound quests, including namespaced references and implicit main-chapter bindings.
