@@ -591,6 +591,31 @@ async function runPerformanceSelfTest(){
   const output=document.createElement('script');output.id='performanceSelfTestResult';output.type='application/json';output.textContent=JSON.stringify({results,heap:performance.memory?.usedJSHeapSize||null});document.body.append(output);
  }finally{({quests,chapters,currentFile,mode,fileMeta,undoStack,redoStack,suppressAutosave,listSort}=before);guiStudioDraft=savedGui.draft;guiStudioDraftScopes=savedGui.scopes;guiStudioHistoryScopes=savedGui.history;if(savedTab===null)localStorage.removeItem('ql.activeTab');else localStorage.setItem('ql.activeTab',savedTab);renderFileList();renderMain();}
 }
+async function runFileActionsSelfTest(){
+ const before={quests,chapters,currentFile,mode,fileMeta,undoStack,redoStack,activityLog,suppressAutosave,listSort,anchor:sidebarAnchor,selection:[...sidebarSelection],pane:document.body.dataset.pane,openEditor:window.__qlPaneOpenEditor};
+ const gui={draft:cloneGuiStudioDraft(),scopes:cloneGuiStudioDraft(guiStudioDraftScopes),history:cloneGuiStudioValue(guiStudioHistoryScopes)};
+ const openModals=$$('.modal-bg.open');openModals.forEach(el=>el.classList.remove('open'));
+ const checks={};suppressAutosave=true;window.__qlPaneOpenEditor=()=>{};
+ const reset=()=>{quests={'a.json':{title:'A',chapter:'one',objectives:[],requirements:[],rewards:[]},'b.json':{title:'B',chapter:'other:one',objectives:[],requirements:[],rewards:[]},'c.json':{title:'C',chapter:'two',objectives:[],requirements:[],rewards:[]}};chapters={'one.json':{name:'One',default_chapter:true},'two.json':{name:'Two'}};fileMeta={};undoStack=[];redoStack=[];mode='quest';currentFile='a.json';listSort='order';sidebarSelection.clear();sidebarAnchor=null;renderFileList();renderMain();};
+ const key=(target,name)=>{const event=new KeyboardEvent('keydown',{key:name,bubbles:true,cancelable:true});target.dispatchEvent(event);return event.defaultPrevented;};
+ const row=file=>$$('#fileList .fi').find(el=>el.dataset.fileName===file);
+ try{
+  reset();row('a.json').dispatchEvent(new MouseEvent('click',{bubbles:true}));row('b.json').dispatchEvent(new MouseEvent('click',{bubbles:true,shiftKey:true}));
+  checks.shiftRange=sidebarSelection.size===2;
+  checks.deleteOpensConfirmation=key(document.body,'Delete')&&$('#confirmModal').classList.contains('open')&&!!quests['a.json'];
+  runConfirmAction();checks.deleteSelectedOnly=!quests['a.json']&&!quests['b.json']&&!!quests['c.json'];checks.singleUndoStep=undoStack.length===1;
+  undoProject();checks.undoRestoresSelectionFiles=!!quests['a.json']&&!!quests['b.json'];
+  sidebarSelection.clear();sidebarSelection.add(sidebarKey('quest','b.json'));key($('#qf_title'),'Backspace');checks.textEditingIgnored=!$('#confirmModal').classList.contains('open');
+  key(document.body,'Backspace');checks.backspaceOpensConfirmation=$('#confirmModal').classList.contains('open');closeConfirmModal();checks.cancelKeepsFiles=!!quests['b.json'];
+  openBulkDeleteModal();$('#bulkSelectAllBtn').click();checks.selectAll=$$('#bulkDeleteList input:checked').length===5;$('#bulkSelectNoneBtn').click();checks.selectNone=!$$('#bulkDeleteList input:checked').length;closeBulkDeleteModal();
+  showCtxMenu(new MouseEvent('contextmenu',{clientX:20,clientY:20}),'one.json','chapter');checks.chapterMenuChoices=$('#ctxDeleteLabel').textContent==='Delete chapter only'&&$('#ctxDeleteWithQuests').style.display==='flex';$('#ctxDelete').click();runConfirmAction();checks.chapterOnlyKeepsQuests=!chapters['one.json']&&!!quests['a.json']&&!!quests['b.json'];
+  reset();showCtxMenu(new MouseEvent('contextmenu',{clientX:20,clientY:20}),'one.json','chapter');$('#ctxDeleteWithQuests').click();runConfirmAction();checks.chapterCascade=!chapters['one.json']&&!quests['a.json']&&!quests['b.json']&&!!quests['c.json']&&!!chapters['two.json'];undoProject();checks.cascadeUndo=!!chapters['one.json']&&!!quests['a.json']&&!!quests['b.json'];
+  currentFile='two.json';mode='chapter';renderMain();$('#btnNewQuest').click();checks.newQuestFromChapter=quests[currentFile]?.chapter==='two'&&sidebarSelection.has(sidebarKey('quest',currentFile));
+  currentFile='a.json';mode='quest';renderMain();$('#btnNewQuest').click();checks.newQuestFromQuestChapter=quests[currentFile]?.chapter==='one';
+  writeExportAtlasSelfTestResult(Object.values(checks).every(Boolean)?'passed':'failed',{test:'file-actions',checks});
+ }catch(error){writeExportAtlasSelfTestResult('error',{test:'file-actions',checks,message:error.message,stack:error.stack});}
+ finally{closeConfirmModal();closeBulkDeleteModal();hideCtxMenu();({quests,chapters,currentFile,mode,fileMeta,undoStack,redoStack,activityLog,suppressAutosave,listSort}=before);guiStudioDraft=gui.draft;guiStudioDraftScopes=gui.scopes;guiStudioHistoryScopes=gui.history;sidebarSelection.clear();before.selection.forEach(value=>sidebarSelection.add(value));sidebarAnchor=before.anchor;document.body.dataset.pane=before.pane;window.__qlPaneOpenEditor=before.openEditor;renderFileList();renderMain();openModals.forEach(el=>el.classList.add('open'));}
+}
 async function runEditorImprovementsSelfTest(){
  // Test only: allow existing sidebar visibility transitions to settle.
  await new Promise(resolve=>setTimeout(resolve,300));
@@ -691,6 +716,14 @@ function initEditorImprovements(){
   if(key!=='z'&&key!=='y')return;
   event.preventDefault();
   if(key==='y'||event.shiftKey)redoWorkbenchOrProject();else undoWorkbenchOrProject();
+ });
+ document.addEventListener('keydown',event=>{
+  if(event.defaultPrevented||event.repeat||event.ctrlKey||event.metaKey||event.altKey||!['Delete','Backspace'].includes(event.key))return;
+  if(event.target.closest?.('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]'))return;
+  if(guiStudioModalOpen()||(document.body.dataset.layout==='canvas'&&!event.target.closest?.('#fileList'))||document.querySelector('.modal-bg.open,.ql-preview-modal.open,.settings-menu.open,.ctx-menu.open'))return;
+  const selected=[...sidebarSelection].map(key=>{const [kind,file]=JSON.parse(key);return {kind,file};}).filter(({kind,file})=>(kind==='quest'?quests:chapters)[file]);
+  if(!selected.length)return;
+  event.preventDefault();requestDeleteFiles(selected);
  });
  const list=$('#fileList');const selectionSummary=document.createElement('div');selectionSummary.id='sidebarSelectionSummary';selectionSummary.className='sidebar-selection-summary';selectionSummary.hidden=true;selectionSummary.setAttribute('role','status');list.before(selectionSummary);list.setAttribute('role','listbox');list.setAttribute('aria-label','Quest and chapter files');list.setAttribute('aria-multiselectable','true');
  list.addEventListener('click',e=>{
@@ -16237,25 +16270,50 @@ function renderBulkDeleteList(){
 }
 function updateBulkDeleteCount(){const n=$$('#bulkDeleteList input[type="checkbox"]:checked').length;const el=$('#bulkDeleteCount');if(el)el.textContent=`${n} selected`;}
 function selectUnboundForDelete(){$$('#bulkDeleteList input[type="checkbox"]').forEach(i=>{i.checked=i.dataset.kind==='quest'&&!questBoundCh(i.dataset.file);});updateBulkDeleteCount();}
+function requestDeleteFiles(entries,{title,copy}={}){
+ const seen=new Set();const selected=entries.filter(({kind,file})=>{
+  const key=sidebarKey(kind,file);if(seen.has(key)||!['quest','chapter'].includes(kind)||!(kind==='quest'?quests:chapters)[file])return false;seen.add(key);return true;
+ });
+ if(!selected.length){showMsg('Select at least one file to delete.',false);return;}
+ openConfirmModal({
+  title:title||`Delete ${selected.length} selected file${selected.length===1?'':'s'}?`,
+  copy:copy||'Only the selected files will be deleted. Quests in deleted chapters are kept unless selected too. Use Undo to restore deleted files.',
+  button:'Delete selected',
+  onConfirm:()=>{
+   syncVisibleStateForHistory();pushHistorySnapshot();let removedDefault=false;
+   selected.forEach(({kind,file})=>{
+    if(kind==='quest')delete quests[file];else{removedDefault=removedDefault||!!chapters[file]?.default_chapter;delete chapters[file];}
+    delete fileMeta[metaKey(kind,file)];sidebarSelection.delete(sidebarKey(kind,file));
+    if(currentFile===file&&mode===kind)currentFile=null;
+   });
+   if(removedDefault)normalizeDefaultChapter();
+   if(!currentFile){const q=Object.keys(quests).sort()[0],c=Object.keys(chapters).sort()[0];if(q){mode='quest';currentFile=q;}else if(c){mode='chapter';currentFile=c;}}
+   if(sidebarAnchor&&!sidebarSelection.has(sidebarAnchor))sidebarAnchor=null;
+   recordActivity('Deleted files','project','',`${selected.length} files`);closeBulkDeleteModal();
+   renderFileList();renderMain();renderValidation();scheduleAutosave();
+   showMsg(`Deleted ${selected.length} file${selected.length===1?'':'s'}.`,true);
+  }
+ });
+}
 function bulkDeleteSelected(){
-  const selected=$$('#bulkDeleteList input[type="checkbox"]:checked').map(i=>({kind:i.dataset.kind,file:i.dataset.file}));
-  if(!selected.length){showMsg('Select at least one file to delete.',false);return;}
-  openConfirmModal({
-    title:`Delete ${selected.length} selected file${selected.length===1?'':'s'}?`,
-    copy:'This removes the selected quests/chapters from this browser project. Use undo if you clicked the wrong thing.',
-    button:'Delete selected',
-    onConfirm:()=>{
-      pushHistorySnapshot();
-      let removedDefault=false;
-      selected.forEach(({kind,file})=>{if(kind==='quest'){delete quests[file];delete fileMeta[metaKey('quest',file)];}else{removedDefault=removedDefault||!!chapters[file]?.default_chapter;delete chapters[file];delete fileMeta[metaKey('chapter',file)];}if(currentFile===file&&mode===kind)currentFile=null;});
-      if(removedDefault)normalizeDefaultChapter();
-      if(!currentFile){const q=Object.keys(quests).sort()[0],c=Object.keys(chapters).sort()[0];if(q){mode='quest';currentFile=q;}else if(c){mode='chapter';currentFile=c;}}
-      recordActivity('Bulk deleted','project','',`${selected.length} files`);
-      closeBulkDeleteModal();
-      renderFileList();renderMain();renderValidation();scheduleAutosave();
-      showMsg(`Deleted ${selected.length} file${selected.length===1?'':'s'}.`,true);
-    }
-  });
+ requestDeleteFiles($$('#bulkDeleteList input[type="checkbox"]:checked').map(i=>({kind:i.dataset.kind,file:i.dataset.file})));
+}
+function requestChapterDelete(file,withQuests=false){
+ const selected=[{kind:'chapter',file}];
+ if(withQuests)Object.keys(quests).forEach(name=>{if(questBoundCh(name)===file)selected.push({kind:'quest',file:name});});
+ requestDeleteFiles(selected,{
+  title:withQuests?`Delete ${file} and ${selected.length-1} quest${selected.length===2?'':'s'}?`:`Delete only ${file}?`,
+  copy:withQuests?'The chapter and its bound quests will be deleted. Other chapters and quests are kept. Use Undo to restore them.':'Only the chapter file will be deleted. Its quests are kept. Use Undo to restore the chapter.'
+ });
+}
+function activeChapterForNewQuest(){
+ if(mode==='chapter'&&chapters[currentFile])return currentFile;
+ return mode==='quest'&&quests[currentFile]?questBoundCh(currentFile):null;
+}
+function createNewQuest(){
+ const chapter=activeChapterForNewQuest();let n='new_quest.json',i=1;while(quests[n])n=`new_quest_${i++}.json`;
+ quests[n]=defQ();if(chapter)quests[n].chapter=chapterIdFor(chapter);
+ appendOrderValue('quest',n);touchFile('quest',n);recordActivity('Created','quest',n);sidebarSelection.clear();sidebarSelection.add(sidebarKey('quest',n));selectFile(n,'quest');
 }
 
 // ── Events ────────────────────────────────────────────────────────
@@ -18176,7 +18234,7 @@ applyPersonalization(loadPersonalization());
 applyGuiStudioTooltipMetadata();
 renderGuiStudioResourcePackShell();
 
-onClick('#btnNewQuest',()=>{let b='new_quest',n=`${b}.json`,i=1;while(quests[n])n=`${b}_${i++}.json`;quests[n]=defQ();appendOrderValue('quest',n);touchFile('quest',n);recordActivity('Created','quest',n);selectFile(n,'quest');});
+onClick('#btnNewQuest',createNewQuest);
 onClick('#btnNewChapter',()=>{let b='new_chapter',n=`${b}.json`,i=1;while(chapters[n])n=`${b}_${i++}.json`;const isFirst=!Object.keys(chapters).length;chapters[n]=defC();if(isFirst)chapters[n].default_chapter=true;appendOrderValue('chapter',n);touchFile('chapter',n);recordActivity('Created','chapter',n);selectFile(n,'chapter');});
 onEvent('#questListSort','change',e=>setListSort(e.target.value));
 onClick('#questListSortButton',e=>{
@@ -19677,7 +19735,7 @@ function shouldRecordHistory(e){
     const mutatingClicks=[
       '#btnNewQuest','#btnNewChapter','#addReq','#addObj','#addFail','#addRew',
       '.small-rm','.rew-remove','.progress-compact-remove','.progress-save-btn','#renameConfirmBtn',
-      '#ctxDuplicate','#ctxMakeTemplate','#ctxUnlink','#ctxDelete','#resetDeleteBtn','.template-create','.template-delete',
+      '#ctxDuplicate','#ctxMakeTemplate','#ctxUnlink','#resetDeleteBtn','.template-create','.template-delete',
       '#templateCreatePack','[data-fmt-template]','[data-fmt-code]','.mc-ac-row'
     ].join(',');
     return !!t.closest(mutatingClicks);
@@ -19716,6 +19774,7 @@ $('#namespacePreviewBtn')?.addEventListener('click',renderNamespacePreview);
 $('#namespaceApplyBtn')?.addEventListener('click',applyNamespaceMigration);
 $('#namespaceMigrateFrom')?.addEventListener('input',renderNamespacePreview);
 $('#namespaceMigrateTo')?.addEventListener('input',renderNamespacePreview);
+onClick('#bulkSelectAllBtn',()=>{$$('#bulkDeleteList input[type="checkbox"]').forEach(i=>i.checked=true);updateBulkDeleteCount();});
 onClick('#bulkSelectNoneBtn',()=>{$$('#bulkDeleteList input[type="checkbox"]').forEach(i=>i.checked=false);updateBulkDeleteCount();});
 onClick('#bulkDeleteBtn',bulkDeleteSelected);
 onClick('#btnResetProgress',()=>{closeSettingsMenu();openResetModal();});
@@ -19737,11 +19796,14 @@ function showCtxMenu(e,name,kind){
   const menu=$('#ctxMenu');
   const unlink=$('#ctxUnlink');
   const makeTpl=$('#ctxMakeTemplate');
+  $('#ctxDeleteLabel').textContent=kind==='chapter'?'Delete chapter only':'Delete';
+  $('#ctxDeleteWithQuests').style.display=kind==='chapter'?'flex':'none';
   if(unlink)unlink.style.display=kind==='quest'&&quests[name]?.chapter&&questBoundCh(name)?'flex':'none';
   if(makeTpl)makeTpl.style.display=kind==='quest'?'flex':'none';
   menu.classList.add('open');
-  const x=Math.min(e.clientX,window.innerWidth-170);
-  const y=Math.min(e.clientY,window.innerHeight-130);
+  const rect=menu.getBoundingClientRect();
+  const x=Math.max(8,Math.min(e.clientX,window.innerWidth-rect.width-8));
+  const y=Math.max(8,Math.min(e.clientY,window.innerHeight-rect.height-8));
   menu.style.left=x+'px';menu.style.top=y+'px';
 }
 function hideCtxMenu(){$('#ctxMenu')?.classList.remove('open');ctxTarget=null;}
@@ -19798,21 +19860,10 @@ onClick('#ctxDuplicate',()=>{if(ctxTarget){duplicateFile(ctxTarget.name,ctxTarge
 onClick('#ctxMakeTemplate',()=>{if(ctxTarget?.kind==='quest'){makeTemplateFromQuest(ctxTarget.name);hideCtxMenu();}});
 onClick('#ctxUnlink',()=>{if(ctxTarget?.kind==='quest'){unbindQ(ctxTarget.name);hideCtxMenu();}});
 onClick('#ctxDelete',()=>{
-  if(!ctxTarget)return;const{name,kind}=ctxTarget;hideCtxMenu();
-  openConfirmModal({
-    title:`Delete ${name}?`,
-    copy:`This removes the ${kind} file from this browser project. Use undo if you clicked the wrong thing.`,
-    button:'Delete',
-    onConfirm:()=>{
-      pushHistorySnapshot();
-      if(kind==='quest'){delete quests[name];delete fileMeta[metaKey('quest',name)];}
-      else{const wasDefault=!!chapters[name]?.default_chapter;delete chapters[name];delete fileMeta[metaKey('chapter',name)];if(wasDefault)normalizeDefaultChapter();}
-      if(currentFile===name&&mode===kind)currentFile=null;
-      recordActivity('Deleted',kind,name);
-      renderFileList();renderMain();renderValidation();scheduleAutosave();
-    }
-  });
+ if(!ctxTarget)return;const{name,kind}=ctxTarget;hideCtxMenu();
+ if(kind==='chapter')requestChapterDelete(name);else requestDeleteFiles([{kind,file:name}],{title:`Delete ${name}?`});
 });
+onClick('#ctxDeleteWithQuests',()=>{if(ctxTarget?.kind!=='chapter')return;const name=ctxTarget.name;hideCtxMenu();requestChapterDelete(name,true);});
 // Close context menu on any click outside
 document.addEventListener('click',hideCtxMenu);
 document.addEventListener('contextmenu',e=>{
@@ -19907,6 +19958,7 @@ initEditorImprovements();
 mountGuiAtlasControls();
 initClassicPaneControls();
 if(new URLSearchParams(location.search).has('performanceSelfTest'))window.addEventListener('questlog-assets-loaded',()=>setTimeout(runPerformanceSelfTest,0),{once:true});
+if(new URLSearchParams(location.search).has('fileActionsSelfTest'))window.addEventListener('questlog-assets-loaded',()=>setTimeout(runFileActionsSelfTest,0),{once:true});
 if(new URLSearchParams(location.search).has('editorImprovementsSelfTest'))window.addEventListener('questlog-assets-loaded',()=>setTimeout(runEditorImprovementsSelfTest,0),{once:true});
 saveAutosaveNow('init');
 updateHistoryButtons();

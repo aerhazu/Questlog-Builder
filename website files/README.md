@@ -5,8 +5,8 @@ Quest Display orders compact settings, icon/sound fields, description and previe
 Responsive four-column grids, centered tabs and shared chapter/quest history
 toolbar placement keep the editors consistent.
 Use **Settings → Project → Global GUI textures → Import PNG** for textures
-shared across all quests and the quest list. See [the main README](../README.md),
-[UI notes](../UI-REFINEMENT.md), and [GUI rendering guide](../GUI-RENDERING.md).
+shared across all quests and the quest list. See [the main README](../README.md)
+for editor workflows, file selection and chapter deletion options.
 
 Website releases and cache revisions are managed centrally. See
 [VERSIONS.md](../VERSIONS.md) for the version inventory and deployment steps.

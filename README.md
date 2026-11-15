@@ -15,7 +15,7 @@ See [the version and release guide](VERSIONS.md) for the full version inventory 
 After editing website files, run `node tools/update-website-assets.cjs` before deployment.
 This updates browser cache markers automatically; the deployed website remains plain static files.
 
-Performance profiling and regression instructions are documented in [PERFORMANCE.md](PERFORMANCE.md). Hidden Progress controls now load when opened, reducing file-switch work without changing exports.
+Hidden Progress controls load when opened, reducing file-switch work without changing exports. Undo checks avoid unnecessary project copies, and sidebar updates are batched.
 
 ## Where this came from
 
@@ -25,12 +25,25 @@ I forked it to build quests for my own modpack, Lavendre, and kept pushing it un
 
 It is made for the [Questlog mod](https://modrinth.com/mod/questlog). It is not affiliated with the mod or its author.
 
+## File selection and deletion
+
+- Shift-click a range or Ctrl/Cmd-click individual sidebar entries, then press
+  **Delete** or **Backspace** to review and confirm deleting the selected files.
+  Text fields keep their normal editing behavior. Undo restores the deletion
+  in one step.
+- The bulk-delete popup has **Select all** and **Select none**.
+- Right-click a chapter for **Delete chapter only** (keep its quests) or
+  **Delete chapter and quests** (also remove quests bound to that chapter).
+- A new blank quest joins the chapter currently open in the editor, or the
+  chapter belonging to the currently open quest. With no active chapter,
+  creation keeps the existing default behavior. Templates retain their own data.
+
 ## What it does
 
 The editor keeps the current file visible in its header, with direct **Preview**
 and **GUI Studio** actions. Display follows **Settings → Icon and sounds →
-Description → Preview**. Quest switches share one compact container with four
-columns where space allows; icon kind, item ID and both sounds share one row.
+Description → Preview**. Quest switches stay grouped by category in compact,
+wrapping controls; icon kind, item ID and both sounds share one row.
 The centered Display, Progress and Advanced tabs divide the toolbar evenly,
 with undo/redo alongside. Chapters use matching surfaces and toolbar placement.
 Grids collapse on smaller panels, and Settings navigation stays reachable.
@@ -47,8 +60,9 @@ matching texture card. Cards show required dimensions and whether the default or
 a custom texture is active. Use Reset to restore an individual default.
 Imports are included in full project/resource-pack exports.
 
-See [GUI rendering and imports](GUI-RENDERING.md) for supported atlases and
-limitations, and [UI refinement notes](UI-REFINEMENT.md) for design decisions.
+GUI imports use complete PNG atlases with the dimensions shown in Settings.
+Previews use the original atlases and source-backed rendering calculations;
+exact in-game equivalence across every GUI scale is not guaranteed.
 
 - Edit Questlog quests and chapters with live JSON and a live in-game style preview.
 - Import your own files. Single JSON files, a whole folder, a ZIP, or pasted JSON.

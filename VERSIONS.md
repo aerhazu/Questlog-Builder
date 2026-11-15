@@ -7,28 +7,17 @@ Minecraft or mod versions.
 
 ## This push: 4.5.0
 
-The pending release also includes measured editor performance improvements,
-without changing saved-data or export formats.
+File workflows now include Delete/Backspace for selected sidebar files, Select
+all in bulk deletion, chapter-only/cascade deletion choices, and blank quest
+creation in the active chapter. Existing project/export formats are unchanged.
 
-This release combines the focused UI refinement with global GUI atlas importing
-and original-atlas rendering. Imports live in Settings → Project, apply across
-all quests and the quest list, and do not require a quest to be selected.
-Preview/GUI Studio actions are available in the file header. Quest flags stay in
-Display in one compact four-column options container. Icon/sound fields follow,
-then description and preview. Centered tabs and aligned history controls share
-the toolbar; chapters use the same general structure. Grids adapt to available
-panel width. Small-screen Settings navigation remains visible.
+This release also includes measured editor performance improvements, global GUI
+texture imports in Settings → Project, original-atlas previews and consistent
+quest/chapter editing layouts. Display orders categorized settings, icon/sound
+fields, description and preview. Hidden side panes reveal on edge hover without
+reopen icons; preview zoom controls sit inside the bottom-right of the preview.
 
-Classic pane controls now live inside the panels, with edge reopen icons and
-temporary hover overlays. Chapter identity/options reuse quest layout classes,
-and wrapped toggle labels retain aligned controls.
-
-This pending push also adds Classic pane visibility controls with checklist
-counts, session preview zoom and consistent chapter identity fields.
-
-This pending push remains 4.5.0, including the details-toggle JSON highlight
-refresh fix and the final layout refinements; no additional version bump is
-needed for these edits before the release is published.
+These changes remain part of the pending 4.5.0 push.
 
 No saved-data schema, Minecraft target, or resource-pack format bump is included.
 Custom atlases are embedded in export metadata; full builder project ZIPs carry

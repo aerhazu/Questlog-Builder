@@ -10,9 +10,15 @@
 - Batched sidebar replacement, scoped chapter lookup caching and avoided unchanged selection attributes.
 - Coalesced JSON geometry updates, removed scroll-time layout reads, and ignored unrelated visual changes.
 - Replaced per-rebuild Advanced-menu document listeners with one delegated listener.
-- See PERFORMANCE.md for measurements, regression coverage and remaining limits.
+- Local profiling at 1,000 quests reduced a 20-form rebuild batch from about 1,116ms to 698ms and duplicate undo checks from 17.3ms to 5.5ms. Sidebar results varied; no cold-load or measured heap improvement is claimed.
 
 ### Editing experience
+
+- Added Delete/Backspace for sidebar multi-selection, using the existing confirmation and one undo snapshot. Text editing, dialogs, GUI Studio and the Canvas background are excluded.
+- Added Select all to the bulk-delete popup.
+- Added chapter context actions to delete only the chapter or the chapter and its bound quests, including namespaced references and implicit main-chapter bindings.
+- New blank quests inherit the active editor chapter, receive the existing ordering/unique filename behavior, and become the selected file.
+- Added file-action regression tests for selection deletion, cancellation, undo, chapter deletion choices and chapter-aware creation.
 
 - Refined categorized settings into compact, wrapping switch-and-label controls with subtle active backgrounds, clearer category labels and no table columns or separators.
 
@@ -56,14 +62,14 @@
 - Corrected QuestDetails description/detail content bounds and default/button visibility behavior from the supplied QuestLog 3.5.4 source.
 - Added global PNG imports in Settings → Project for all quests and the quest list, with visible Import PNG actions, dimensions, applied/default status, individual resets, persistence, and project/resource-pack export.
 - Added controls for `details_open_by_default` and `disable_details_button`. Existing GUI Studio edits retain precedence over imported base atlases.
-- Documented source evidence, tests, and browser-versus-Minecraft limitations in `GUI-RENDERING.md` and the UI assessment in `UI-REFINEMENT.md`.
+- GUI behavior follows the inspected QuestLog 3.5.4 source; exact in-game visual equivalence is not claimed.
 
 ### Verification
 
 - Node regression checks cover editor behavior, atlas geometry, global import placement, mod textures, and cache generation.
-- The final section-order/four-column layout changes passed 13 automated tests; browser visual verification of that latest pass remains pending.
+- Current file-action update passed 21 automated tests and 16 browser checks, covering range deletion, cancellation, Undo, chapter-only/cascade deletion, bulk selection and chapter-aware quest creation.
 - Earlier browser checks cover the compact editor and Project settings; the atlas lifecycle harness exercises importing, recovery, reset, format/dimension rejection, and export paths.
-- No in-game runtime comparison or exhaustive assistive-technology/theme matrix is claimed. See the supporting notes for exact test coverage.
+- No in-game runtime comparison or exhaustive assistive-technology/theme matrix is claimed.
 
 ## v4.4.0 — Editor improvements and QuestLog 3.5.4 support
 
@@ -74,7 +80,7 @@
 - Compact, card, and dense Mod Support views with saved view preferences, categories, and Minecraft versions.
 - Source-confirmed QuestLog 3.5.4 support for AND and Origins objectives, choice/random reward containers, and repeatable/global quest flags.
 - Hover tips for repeatable/global flags and project undo/redo keyboard shortcuts outside text fields, preserving existing Canvas and GUI Studio handling.
-- Editor integration checks and regression tests; source evidence and limitations in `EDITOR-UPDATE-NOTES.md`.
+- Added editor integration checks and regression tests against the inspected QuestLog 3.5.4 source.
 
 ### Fixed
 
